@@ -46,3 +46,67 @@ uint8_t write_byte(uint8_t b) {
    UDR0 = b;
    return 1;
 }
+
+void print_string(char* s) {
+   while (*s) {
+      write_byte(*s++);
+   }
+}
+
+void print_int(uint16_t i) {
+   char integerString[30];
+
+   sprintf(integerString, "%d", i);
+
+   print_string(integerString);
+}
+
+void print_int32(uint32_t i) {
+   char integerString[30];
+
+   itoa(integerString, "%d", i);
+
+   print_string(integerString);
+}
+
+void print_hex(uint16_t i) {
+   char integerString[30];
+
+   sprintf(integerString, "0x%x", i);
+
+   print_string(integerString);
+}
+
+void print_hex32(uint32_t i) {
+   char integerString[30];
+
+   itoa(integerString, "0x%d", i);
+
+   print_string(integerString);
+}
+
+void set_cursor(uint8_t row, uint8_t col) {
+   char cursorCommand[30];
+
+   sprintf(cursorCommand, "%d;%df", row, col);
+
+   print_string(cursorCommand);
+}
+
+void set_color(uint8_t color) {
+   char cursorCommand[30];
+
+   if (color >= BLACK && color <= WHITE) {
+      sprintf(cursorCommand, "%dm", color);
+
+      print_string(cursorCommand);
+   }
+}
+
+void clear_screen(void) {
+   char cursorCommand[30];
+
+   sprintf(cursorCommand, "2J");
+
+   print_string(cursorCommand);
+}
