@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include "globals.h"
 
 /*
  * Initialize the serial port.
@@ -53,71 +54,135 @@ void print_string(char* s) {
    }
 }
 
-void print_int(uint16_t i) {
-   char integerString[30];
+uint8_t myITOA10(char *string, uint32_t i) {
+   uint8_t stringIndex = 0;
+   uint8_t remainder = 0;
 
-   itoa(integerString, i, 10);
+   do {
+      if (stringIndex > MAX_STRING_LENGTH) {
+         assert(0);
+      }
+
+      remainder = i % 10;
+      string[stringIndex++] = '0' + remainder;
+
+      i /= 10;
+   } while (i > 0);
+
+   string[stringIndex] = '\0';
+
+   reverseString(string, stringIndex);
    
+   return stringIndex;
+}
 
-   print_string(integerString);
+uint8_t myITOA16(char *string, uint32_t i) {
+   uint8_t stringIndex = 0;
+   uint8_t remainder = 0;
+
+   do {
+      if (stringIndex > MAX_STRING_LENGTH) {
+         assert(0);
+      }
+
+      remainder = i & 0xF;
+      string[stringIndex++] = remainder < 10 ? '0' + remainder : 'A' + remainder - 10;
+
+      i >>= 4;
+   } while (i > 0);
+
+   string[stringIndex] = '\0';
+
+   reverseString(string, stringIndex);
+
+   return stringIndex;
+}
+
+void reverseString(char *string, uint8_t stringSize) {
+   uint8_t stringIndex = 0;
+   char temp = 0;
+
+   while (stringIndex * 2 < stringSize - 1) {
+      temp = string[stringIndex];
+      string[stringIndex] = string[stringSize - stringIndex - 1];
+      string[stringSize - stringIndex - 1] = temp;
+
+      stringIndex++;
+   }
+}
+
+// How is this different than print_int32(uint32_t i)?
+void print_int(uint16_t i) {
+   print_int32(i);
 }
 
 void print_int32(uint32_t i) {
-   char integerString[30];
+   char integerString[MAX_STRING_LENGTH];
 
-   itoa(integerString, i, 10);
+   myITOA10(integerString, i);
 
    print_string(integerString);
 }
 
 void print_hex(uint16_t i) {
-   char integerString[30];
+   char integerString[MAX_STRING_LENGTH];
 
-   itoa(integerString, i, 16);
+   myITOA16(integerString, i);
 
    print_string(integerString);
 }
 
 void print_hex32(uint32_t i) {
-   char integerString[30];
+   char integerString[MAX_STRING_LENGTH];
 
-   itoa(integerString, i, 16);
+   myITOA16(integerString, i);
 
    print_string(integerString);
 }
 
 void set_cursor(uint8_t row, uint8_t col) {
-   char cursorCommand[30];
+   char string[MAX_STRING_LENGTH];
+   uint8_t stringIndex = 0;
 
-   cursorCommand[0] = '';
-//   cursorCommand[1] = row;
-   cursorCommand[2] = ';';
-//   cursorCommand[3] = col;
-   cursorCommand[4] = 'f';
-   cursorCommand[5] = '\0';
+   string[stringIndex++] = '';
+   stringIndex += myITOA10(&string[stringIndex], row);
+   string[stringIndex++] = ';';
+   stringIndex += myITOA10(&string[stringIndex], col);
+   string[stringIndex++] = 'f';
+   string[stringIndex++] = '\0';
 
-   print_string(cursorCommand);
+   if (stringIndex > MAX_STRING_LENGTH) {
+      assert(0);
+   }
+
+   print_string(string);
 }
 
 void set_color(uint8_t color) {
-   char cursorCommand[30];
-   if (color >= BLACK && color <= WHITE) {
-      cursorCommand[0] = '';
-//      cursorCommand[1] = color;
-      cursorCommand[2] = 'm';
-      cursorCommand[3] = '\0';
+   char string[MAX_STRING_LENGTH];
+   uint8_t stringIndex = 0;
 
-      print_string(cursorCommand);
+   if (color >= BLACK && color <= WHITE) {
+      string[stringIndex++] = '';
+      stringIndex += myITOA10(&string[stringIndex], color);
+      string[stringIndex++] = 'm';
+      string[stringIndex++] = '\0';
+
+      print_string(string);
+   }
+   else {
+      assert(0);
    }
 }
 
 void clear_screen(void) {
-   char cursorCommand[30];
+   char string[MAX_STRING_LENGTH];
+   uint8_t stringIndex = 0;
 
-   cursorCommand[0] = '';
-   cursorCommand[1] = '2';
-   cursorCommand[2] = 'J';
-   cursorCommand[3] = '\0';
+   string[stringIndex++] = '';
+   string[stringIndex++] = '2';
+   string[stringIndex++] = 'J';
+   string[stringIndex++] = '\0';
 
-   print_string(cursorCommand);
+   print_string(string);
 }
