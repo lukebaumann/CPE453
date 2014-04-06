@@ -56,7 +56,8 @@ void print_string(char* s) {
 void print_int(uint16_t i) {
    char integerString[30];
 
-   sprintf(integerString, "%d", i);
+   itoa(integerString, i, 10);
+   
 
    print_string(integerString);
 }
@@ -64,7 +65,7 @@ void print_int(uint16_t i) {
 void print_int32(uint32_t i) {
    char integerString[30];
 
-   itoa(integerString, "%d", i);
+   itoa(integerString, i, 10);
 
    print_string(integerString);
 }
@@ -72,7 +73,7 @@ void print_int32(uint32_t i) {
 void print_hex(uint16_t i) {
    char integerString[30];
 
-   sprintf(integerString, "0x%x", i);
+   itoa(integerString, i, 16);
 
    print_string(integerString);
 }
@@ -80,7 +81,7 @@ void print_hex(uint16_t i) {
 void print_hex32(uint32_t i) {
    char integerString[30];
 
-   itoa(integerString, "0x%d", i);
+   itoa(integerString, i, 16);
 
    print_string(integerString);
 }
@@ -88,16 +89,23 @@ void print_hex32(uint32_t i) {
 void set_cursor(uint8_t row, uint8_t col) {
    char cursorCommand[30];
 
-   sprintf(cursorCommand, "%d;%df", row, col);
+   cursorCommand[0] = '';
+//   cursorCommand[1] = row;
+   cursorCommand[2] = ';';
+//   cursorCommand[3] = col;
+   cursorCommand[4] = 'f';
+   cursorCommand[5] = '\0';
 
    print_string(cursorCommand);
 }
 
 void set_color(uint8_t color) {
    char cursorCommand[30];
-
    if (color >= BLACK && color <= WHITE) {
-      sprintf(cursorCommand, "%dm", color);
+      cursorCommand[0] = '';
+//      cursorCommand[1] = color;
+      cursorCommand[2] = 'm';
+      cursorCommand[3] = '\0';
 
       print_string(cursorCommand);
    }
@@ -106,7 +114,10 @@ void set_color(uint8_t color) {
 void clear_screen(void) {
    char cursorCommand[30];
 
-   sprintf(cursorCommand, "2J");
+   cursorCommand[0] = '';
+   cursorCommand[1] = '2';
+   cursorCommand[2] = 'J';
+   cursorCommand[3] = '\0';
 
    print_string(cursorCommand);
 }
