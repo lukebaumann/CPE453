@@ -140,7 +140,7 @@ void set_color(uint8_t color) {
    uint8_t stringIndex = 0;
 
    if (color >= BLACK && color <= WHITE) {
-      string[stringIndex++] = '';
+      string[stringIndex++] = '[';
       stringIndex += myITOA10(&string[stringIndex], color);
       string[stringIndex++] = 'm';
       string[stringIndex++] = '\0';
@@ -200,6 +200,8 @@ int main(void) {
    uint8_t u8 = 0;
    uint16_t u16 = 0;
    uint32_t u32 = 0;
+
+   set_color(CYAN);
 
    printf("Testing print_int u8: \n");
    u8 = 14;

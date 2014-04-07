@@ -164,7 +164,7 @@ void set_color(uint8_t color) {
    uint8_t stringIndex = 0;
 
    if (color >= BLACK && color <= WHITE) {
-      string[stringIndex++] = '';
+      string[stringIndex++] = '\e';
       string[stringIndex++] = '[';
       stringIndex += myITOA10(&string[stringIndex], color);
       string[stringIndex++] = 'm';

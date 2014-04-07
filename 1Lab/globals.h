@@ -4,12 +4,11 @@
 #define GLOBALS_H
 
 #include <avr/io.h>
-#include <util/delay.h>
 
 //place defines and prototypes here
 #define MAX_STRING_LENGTH 30
-#define MAX_ROW 80
-#define MAX_COL 25
+#define MAX_ROW 25
+#define MAX_COL 80
 #define BLACK 30
 #define RED 31
 #define GREEN 32
