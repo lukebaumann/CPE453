@@ -1,7 +1,7 @@
 #include "globals.h"
 
 void main(void) {
-   uint8_t row = 1;
+   uint8_t row = 2;
    uint8_t col = 1;
    uint8_t color = BLACK;
    uint8_t inputByte = 0;
@@ -10,7 +10,15 @@ void main(void) {
 
    serial_init();
 
+   set_cursor(1, 1);
+   print_string("(");
+   print_int(row);
+   print_string(", ");
+   print_int(col);
+   print_string(")");
+   set_cursor(row, col);
    print_string("Luke Baumann");
+   set_cursor(row, col);
    while (1) {
       
       //while (!byte_available());
@@ -23,7 +31,7 @@ void main(void) {
             }
          }
          else if (inputByte == 'w') {
-            if (row > 1) {
+            if (row > 2) {
                row--;
             }
          }
@@ -42,10 +50,16 @@ void main(void) {
          }
 
          clear_screen();
-         set_cursor(row, col);
          set_color(color);
-
+         set_cursor(1, 1);
+         print_string("(");
+         print_int(row);
+         print_string(", ");
+         print_int(col);
+         print_string(")");
+         set_cursor(row, col);
          print_string("Luke Baumann");
+         set_cursor(row, col);
       }
    }
 }
