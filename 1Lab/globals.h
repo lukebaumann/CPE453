@@ -4,6 +4,7 @@
 #define GLOBALS_H
 
 #include <avr/io.h>
+#include <util/delay.h>
 
 //place defines and prototypes here
 #define MAX_STRING_LENGTH 30
@@ -17,6 +18,8 @@
 #define MAGENTA 35
 #define CYAN 36
 #define WHITE 37
+
+typedef enum { INCREMENT = 0, FINISH } STATE;
 
 uint8_t write_byte(uint8_t b);
 void print_string(char* s);
