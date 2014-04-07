@@ -59,9 +59,9 @@ uint8_t myITOA10(char *string, uint32_t i) {
    uint8_t remainder = 0;
 
    do {
-      if (stringIndex > MAX_STRING_LENGTH) {
+      /*if (stringIndex > MAX_STRING_LENGTH) {
          assert(0);
-      }
+      }*/
 
       remainder = i % 10;
       string[stringIndex++] = '0' + remainder;
@@ -81,9 +81,9 @@ uint8_t myITOA16(char *string, uint32_t i) {
    uint8_t remainder = 0;
 
    do {
-      if (stringIndex > MAX_STRING_LENGTH) {
+      /*if (stringIndex > MAX_STRING_LENGTH) {
          assert(0);
-      }
+      }*/
 
       remainder = i & 0xF;
       string[stringIndex++] = remainder < 10 ? '0' + remainder : 'A' + remainder - 10;
@@ -145,15 +145,16 @@ void set_cursor(uint8_t row, uint8_t col) {
    uint8_t stringIndex = 0;
 
    string[stringIndex++] = '';
+   string[stringIndex++] = '[';
    stringIndex += myITOA10(&string[stringIndex], row);
    string[stringIndex++] = ';';
    stringIndex += myITOA10(&string[stringIndex], col);
    string[stringIndex++] = 'f';
    string[stringIndex++] = '\0';
 
-   if (stringIndex > MAX_STRING_LENGTH) {
+   /*if (stringIndex > MAX_STRING_LENGTH) {
       assert(0);
-   }
+   }*/
 
    print_string(string);
 }
@@ -164,15 +165,16 @@ void set_color(uint8_t color) {
 
    if (color >= BLACK && color <= WHITE) {
       string[stringIndex++] = '';
+      string[stringIndex++] = '[';
       stringIndex += myITOA10(&string[stringIndex], color);
       string[stringIndex++] = 'm';
       string[stringIndex++] = '\0';
 
       print_string(string);
    }
-   else {
+   /*else {
       assert(0);
-   }
+   }*/
 }
 
 void clear_screen(void) {
@@ -180,6 +182,7 @@ void clear_screen(void) {
    uint8_t stringIndex = 0;
 
    string[stringIndex++] = '';
+   string[stringIndex++] = '[';
    string[stringIndex++] = '2';
    string[stringIndex++] = 'J';
    string[stringIndex++] = '\0';
