@@ -1,5 +1,20 @@
 #include "globals.h"
 
+void printCoordinates(uint8_t row, uint8_t col) {
+   set_cursor(1, 1);
+   print_string("(");
+   print_int(row);
+   print_string(", ");
+   print_int(col);
+   print_string(")");
+}
+
+void printName(uint8_t row, uint8_t col) {
+   set_cursor(row, col);
+   print_string("Luke Baumann");
+   set_cursor(row, col);
+}
+
 void main(void) {
    uint8_t row = 2;
    uint8_t col = 1;
@@ -10,15 +25,9 @@ void main(void) {
 
    serial_init();
 
-   set_cursor(1, 1);
-   print_string("(");
-   print_int(row);
-   print_string(", ");
-   print_int(col);
-   print_string(")");
-   set_cursor(row, col);
-   print_string("Luke Baumann");
-   set_cursor(row, col);
+   printCoordinates(row, col);
+   printName(row, col);
+
    while (1) {
       
       //while (!byte_available());
@@ -51,15 +60,8 @@ void main(void) {
 
          clear_screen();
          set_color(color);
-         set_cursor(1, 1);
-         print_string("(");
-         print_int(row);
-         print_string(", ");
-         print_int(col);
-         print_string(")");
-         set_cursor(row, col);
-         print_string("Luke Baumann");
-         set_cursor(row, col);
+         printCoordinates(row, col);
+         printName(row, col);
       }
    }
 }
