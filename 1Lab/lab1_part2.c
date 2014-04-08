@@ -10,14 +10,14 @@ void main(void) {
    uint8_t num3 = 0;
    uint32_t num4 = 0;
 
-   STATE state = INCREMENT;
+   STATE state = CONTINUE;
 
    serial_init();
 
    
    while (1) {
       switch (state) {
-      case INCREMENT:
+      case CONTINUE:
          inputByte = read_byte();
 
          if (inputByte != 255) {
@@ -37,7 +37,7 @@ void main(void) {
          num4 += 1000;
          print_hex32(num4);
 
-         state = INCREMENT;
+         state = CONTINUE;
          _delay_ms(5);
          break;
          

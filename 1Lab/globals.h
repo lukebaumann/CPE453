@@ -19,8 +19,9 @@
 #define CYAN 36
 #define WHITE 37
 
-typedef enum { INCREMENT = 0, FINISH } STATE;
+typedef enum { CONTINUE = 0, FINISH } STATE;
 
+// For serial.c
 uint8_t write_byte(uint8_t b);
 void print_string(char* s);
 uint8_t myITOA10(char *string, uint32_t i);
@@ -39,4 +40,14 @@ void testDec32(uint32_t tested);
 void testHex8(int8_t tested);
 void testHex16(uint16_t tested);
 void testHex32(uint32_t tested);
+
+// For lab1_part1.c
+void printCoordinates(uint8_t row, uint8_t col);
+void printName(uint8_t row, uint8_t col);
+
+// For lab1_part3.c
+void led_on();
+void led_off();
+
+
 #endif

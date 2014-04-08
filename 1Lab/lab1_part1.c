@@ -1,20 +1,5 @@
 #include "globals.h"
 
-void printCoordinates(uint8_t row, uint8_t col) {
-   set_cursor(1, 1);
-   print_string("(");
-   print_int(row);
-   print_string(", ");
-   print_int(col);
-   print_string(")");
-}
-
-void printName(uint8_t row, uint8_t col) {
-   set_cursor(row, col);
-   print_string("Luke Baumann");
-   set_cursor(row, col);
-}
-
 void main(void) {
    uint8_t row = 2;
    uint8_t col = 1;
@@ -66,5 +51,17 @@ void main(void) {
    }
 }
 
+void printCoordinates(uint8_t row, uint8_t col) {
+   set_cursor(1, 1);
+   print_string("(");
+   print_int(row);
+   print_string(", ");
+   print_int(col);
+   print_string(")");
+}
 
-
+void printName(uint8_t row, uint8_t col) {
+   set_cursor(row, col);
+   print_string("Luke Baumann");
+   set_cursor(row, col);
+}
