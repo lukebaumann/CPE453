@@ -1,34 +1,17 @@
-// According to Kyle Corio, there is no allocated space in the heap until one of the *alloc calls is made
-void *programBreak = 0;
-void *nextAddressToAllocated = 0;
-uint8_t heapSize = 0;
+#include <stdlib.h>
 
-typedef struct {
-   uint8_t freeFlag,
-   uint32_t size,
-} header;
+extern void *myMalloc(size_t size);
+extern void myFree(void *ptr);
 
-void *calloc(size_t nmemb, size_t size) {
-   return 0;
-}
+int main(void) {
+   uint32_t i = 0;
 
-void *malloc(size_t size) {
-   if (nextAddressToAllocated + sizeof(header) + size > programBreak) {
-      sblk(...);
+   uint8_t *array = myMalloc(100 * sizeof(uint8_t));
+   for (i = 0; i < 100; i++) {
+      array[i] = i;
    }
 
-   
-   
+   myFree(array);
 
    return 0;
 }
-
-void free(void ptr) {
-
-}
-
-void *realloc(void *ptr, size_t size) {
-   return 0;
-}
-
-
