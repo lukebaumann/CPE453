@@ -298,10 +298,12 @@ void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
    }
 }
 
-void reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size) {
+void *reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size) {
    void *block = malloc(size);
-   memcpy(block, headerPointer->allocatedBlock, headerPointer->size);
+   memmove(block, headerPointer->allocatedBlock, headerPointer->size);
    free(headerPointer->allocatedBlock);
+
+   return block;
 }
 
 void *realloc(void *ptr, size_t size) {
@@ -313,13 +315,20 @@ void *realloc(void *ptr, size_t size) {
       return NULL;
    }
 
+   void *block = NULL;
+
    header *headerBefore = getBeforePointerFromPointer(ptr);
    header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
-   if (headerPointer->size > size + headerSize) {
-      reallocFromTooBig(headerPointer, size);
+   // If I am shrinking my allocatedBlock
+   if (headerPointer->size > size) {
+      // and there is enough room for another header, then resize
+      if (headerPointer->size > size + headerSize) {
+         reallocFromTooBig(headerPointer, size);
+      }
+      // Otherwise, do nothing
+      else {}
    }
-
    else if (headerPointer == head) {
       // Never will happen
       //if (headerPointer->next == NULL) {
@@ -331,7 +340,7 @@ void *realloc(void *ptr, size_t size) {
             reallocIntoNextHeader(headerPointer, size);
          }
          else {
-            reallocIntoCompletelyNewBlock(headerPointer, size);
+            block = reallocIntoCompletelyNewBlock(headerPointer, size);
          }
       //}
    }
@@ -373,7 +382,7 @@ void *realloc(void *ptr, size_t size) {
       //}
    }
 
-   return headerPointer->allocatedBlock;
+   return block == NULL ? headerPointer->allocatedBlock : block;
 }
 
 
