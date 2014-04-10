@@ -235,6 +235,75 @@ void free(void *ptr) {
    }
 }
 
+void reallocFromTooBig(header *headerPointer, uint32_t size) {
+   header *temp;
+   header *nextHeader;
+   uint32_t oldSize;
+
+   temp = headerPointer->next;
+   oldSize = headerPointer->size;
+
+   headerPointer->size = size;
+   headerPointer->next =
+    (header *) (((uint8_t *) headerPointer->allocatedBlock)
+    + headerPointer->size);
+
+   nextHeader = headerPointer->next;
+   nextHeader->allocatedBlock =
+    (void *) (nextHeader + 1); 
+   nextHeader->freeFlag = TRUE;
+   nextHeader->size = oldSize - headerSize - size;
+   nextHeader->next = temp;
+}
+
+void reallocIntoNextHeader(header *headerPointer, uint32_t size) {
+   headerPointer->size += headerSize + headerPointer->next->size;
+   headerPointer->next = headerPointer->next->next;
+
+   // If there is enough room for another header, insert it.
+   // Otherwise, live with the extra space
+   if (headerPointer->size > size + headerSize) {
+      reallocFromTooBig(headerPointer, size);
+   }
+}
+
+void reallocIntoPreviousAndNextHeader(header *headerBefore, uint32_t size) {
+   header *temp = headerBefore->next->next->next;
+
+   headerBefore->size += headerSize + headerBefore->next->size + headerSize
+    + headerBefore->next->next->size;
+   
+   memmove(headerBefore->allocatedBlock, 
+    headerBefore->next->allocatedBlock, headerBefore->next->size);
+   
+   headerBefore->next = temp;
+
+   if (headerBefore->size > size + headerSize) {
+      reallocFromTooBig(headerBefore, size);
+   }
+}
+
+void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
+   header *temp = headerBefore->next->next;
+
+   headerBefore->size += headerSize + headerBefore->next->size;
+   
+   memmove(headerBefore->allocatedBlock, 
+    headerBefore->next->allocatedBlock, headerBefore->next->size);
+   
+   headerBefore->next = temp;
+
+   if (headerBefore->size > size + headerSize) {
+      reallocFromTooBig(headerBefore, size);
+   }
+}
+
+void reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size) {
+   void *block = malloc(size);
+   memcpy(block, headerPointer->allocatedBlock, headerPointer->size);
+   free(headerPointer->allocatedBlock);
+}
+
 void *realloc(void *ptr, size_t size) {
    if (ptr == NULL) {
       return malloc(size);
@@ -247,7 +316,62 @@ void *realloc(void *ptr, size_t size) {
    header *headerBefore = getBeforePointerFromPointer(ptr);
    header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
-   return NULL;
+   if (headerPointer->size > size + headerSize) {
+      reallocFromTooBig(headerPointer, size);
+   }
+
+   else if (headerPointer == head) {
+      // Never will happen
+      //if (headerPointer->next == NULL) {
+      //   headerPointer->freeFlag = TRUE;
+      //}
+      //else {
+         if (headerPointer->next->freeFlag == TRUE &&
+          headerPointer->size + headerSize + headerPointer->next->size > size) {
+            reallocIntoNextHeader(headerPointer, size);
+         }
+         else {
+            reallocIntoCompletelyNewBlock(headerPointer, size);
+         }
+      //}
+   }
+   else {
+      // Never will happen
+      //if (headerPointer->next == NULL) {
+      //   if (headerBefore->freeFlag == FALSE) {
+      //      headerPointer->freeFlag = TRUE;
+      //   }
+      //   else {
+      //      headerBefore->size += headerSize + headerPointer->size;
+      //      headerBefore->next = NULL;
+      //   }
+      //}
+      //else {
+         // If after is free and big enough...
+         if (headerPointer->next->freeFlag == TRUE &&
+          headerPointer->size + headerSize + headerPointer->next->size > size) {
+            reallocIntoNextHeader(headerPointer, size);
+         }
+         // If both before and after are free and big enough...
+         else if (headerBefore->freeFlag == TRUE && headerPointer->next->freeFlag == TRUE &&
+          headerBefore->size + headerSize + headerPointer->size + headerSize + headerPointer->next->size > size) {
+            reallocIntoPreviousAndNextHeader(headerBefore, size);
+            headerPointer = headerBefore;
+         }
+         // If only before is free and big enough...
+         else if (headerBefore->freeFlag == TRUE &&
+          headerBefore->size + headerSize + headerPointer->size > size) {
+            reallocIntoPreviousHeader(headerBefore, size);
+            headerPointer = headerBefore;
+         }
+         // If neither before or after are free or big enough...
+         else {
+            reallocIntoCompletelyNewBlock(headerPointer, size);
+         }
+      //}
+   }
+
+   return headerPointer->allocatedBlock;
 }
 
 
