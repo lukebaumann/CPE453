@@ -53,14 +53,17 @@ void doMalloc(header *headerPointer, size_t size) {
     + headerPointer->size);
 
    nextHeader = headerPointer->next;
-   sprintf(buffer, "nextHeader: %p\nnextHeader->allocatedBlock: %p\nsbrk(0): %p\n", nextHeader, (void *) (nextHeader + 1), sbrk(0));
-   puts(buffer);
+   //sprintf(buffer, "nextHeader: %p\nnextHeader->allocatedBlock: 
+   //%p\nsbrk(0): %p\n", nextHeader, (void *) (nextHeader + 1), sbrk(0));
+   //puts(buffer);
    nextHeader->allocatedBlock =
     (void *) (nextHeader + 1); 
    nextHeader->freeFlag = TRUE;
    nextHeader->size = oldSize - headerSize - size;
-   sprintf(buffer, "headerPointer->size: %d\noldSize: %d\nheaderSize: %d\nsize: %d\nnextHeader->size: %d\n", headerPointer->size, oldSize, headerSize, size, nextHeader->size);
-   puts(buffer);
+   //sprintf(buffer, "headerPointer->size: %d\noldSize:
+   //%d\nheaderSize: %d\nsize: %d\nnextHeader->size: %d\n",
+   //headerPointer->size, oldSize, headerSize, size, nextHeader->size);
+   //puts(buffer);
    nextHeader->next = temp;
 }
 
@@ -68,21 +71,31 @@ void mallocForTailHeader(header *headerPointer, size_t size) {
       // If it allocates the exact size of the heap,
       // it grows the heap to allow for the final free header
 
-      sprintf(buffer, "headerPointer->size: %d\nsize: %d\nheaderSize: %d\nheaderPointer->size - size <= headerSize + 10: %d\n\n", headerPointer->size, size, headerSize, headerPointer->size <= headerSize + 10 + size);
-      puts(buffer);
+      //sprintf(buffer, "headerPointer->size: %d\nsize: %d\n
+      //headerSize: %d\nheaderPointer->size - size <=
+      //headerSize + 10: %d\n\n", headerPointer->size, size,
+      //headerSize, headerPointer->size <= headerSize + 10 + size);
+      //puts(buffer);
       while (headerPointer->size <= headerSize + 10 + size) {
-         putChar('a');
+         //putChar('a');
          if (sbrk(BREAK_INCREMENT) < 0) {
          }
-         sprintf(buffer, "old headerPointer->size: %d\n", headerPointer->size);
-         puts(buffer);
+         //sprintf(buffer, "old headerPointer->size: %d\n",
+         //headerPointer->size);
+         //puts(buffer);
          headerPointer->size += BREAK_INCREMENT;
-         sprintf(buffer, "new headerPointer->size: %d\n", headerPointer->size);
-         puts(buffer);
+         //sprintf(buffer, "new headerPointer->size: %d\n",
+         //headerPointer->size);
+         //puts(buffer);
       }
 
-      sprintf(buffer, "headerPointer: %p\nheaderPointer->allocatedBlock: %p\nheaderPointer->size: %d\nsize: %d\nnextHeader: %p\nnextHeader->allocatedBlock: %p\n\nsbrk(0): %p\n", headerPointer, headerPointer->allocatedBlock, headerPointer->size, size, headerPointer->next, (void *) (headerPointer->next + 1), sbrk(0));
-      puts(buffer);
+      //sprintf(buffer, "headerPointer: %p\nheaderPointer->allocatedBlock: %p\n
+      //headerPointer->size: %d\nsize: %d\nnextHeader: %p\n
+      //nextHeader->allocatedBlock: %p\n\nsbrk(0): %p\n",
+      //headerPointer, headerPointer->allocatedBlock,
+      //headerPointer->size, size, headerPointer->next,
+      //(void *) (headerPointer->next + 1), sbrk(0));
+      //puts(buffer);
 
       doMalloc(headerPointer, size);
 }
