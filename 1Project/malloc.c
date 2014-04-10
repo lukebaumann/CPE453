@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
@@ -14,7 +15,7 @@ void *programBreak = 0;
 header *head = NULL;
 uint8_t heapSize = 0;
 static uint8_t headerSize = sizeof(header);
-#define BREAK_INCREMENT 37
+#define BREAK_INCREMENT 10000000
 #define TRUE 1
 #define FALSE 0
 
@@ -113,76 +114,90 @@ void *malloc(size_t size) {
    return headerPointer->allocatedBlock;
 }
 
+header *getBeforePointerFromPointer(void *ptr) {
+   header *headerBefore = head;
+   if ((uint8_t *) ptr < (uint8_t *) headerBefore->next) {
+      return NULL;
+   }
+   else {
+      while ((uint8_t *) headerBefore->next->next > (uint8_t * ) ptr) {
+         headerBefore = headerBefore->next;
+      }
+   }
+
+   return headerBefore;
+}
+
+header *getHeaderPointerFromBefore(header *headerBefore) {
+   header *headerPointer;
+
+   if (headerBefore == NULL) {
+      headerPointer = head;
+   }
+   else {
+      headerPointer = headerBefore->next;
+   }
+
+   return headerPointer;
+}
+
 void free(void *ptr) {
    if (ptr == NULL) {
       return;
    }
 
-   header *headerPointer = head;
-   header *headerBefore;
+   header *headerBefore = getBeforePointerFromPointer(ptr);
+   header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
-   while (((uint8_t *) &headerPointer->allocatedBlock)
-    + headerPointer->size < (uint8_t * ) ptr) {
-      headerBefore = headerPointer;
-      headerPointer = headerPointer->next;
-   }
 
-   if (headerBefore == NULL && headerPointer->next == NULL) {
-      headerPointer->freeFlag = TRUE;
-   }
-   else if (headerBefore == NULL && headerPointer->next != NULL) {
-      if (headerPointer->next->freeFlag == FALSE) {
-         headerPointer->freeFlag = TRUE;
-      }
-      else if (headerPointer->next->freeFlag == TRUE) {
-         headerPointer->next = headerPointer->next->next;
-         headerPointer->size += headerSize + headerPointer->next->size;
+   if (headerPointer == head) {
+      if (headerPointer->next == NULL) {
          headerPointer->freeFlag = TRUE;
       }
       else {
-         assert(0);
-      }
-   }
-   else if (headerBefore != NULL && headerPointer->next == NULL) {
-      if (headerBefore->freeFlag == FALSE) {
-         headerPointer->freeFlag = TRUE;
-      }
-      else if (headerBefore->freeFlag == TRUE) {
-         headerBefore->next = headerPointer->next;
-         headerBefore->size += headerSize + headerPointer->next->size;
-      }
-      else {
-         assert(0);
-      }
-   }
-   else if (headerBefore != NULL && headerPointer->next != NULL) {
-      if (headerBefore->freeFlag == TRUE
-       && headerPointer->next->freeFlag == TRUE) {
-         headerBefore->next = headerPointer->next->next;
-         headerBefore->size += headerSize + headerPointer->size +
-            headerSize + headerPointer->next->size;
-      }
-      else if (headerBefore->freeFlag == FALSE
-       && headerPointer->next->freeFlag == TRUE) {
-         headerPointer->next = headerPointer->next->next;
-         headerPointer->size += headerSize + headerPointer->next->size;
-         headerPointer->freeFlag = TRUE;
-      }
-      else if (headerBefore->freeFlag == TRUE
-       && headerPointer->next->freeFlag == FALSE) {
-         headerBefore->next = headerPointer->next;
-         headerBefore->size += headerSize + headerPointer->size;
-      }
-      else if (headerBefore->freeFlag == FALSE
-       && headerPointer->next->freeFlag == FALSE) {
-         headerPointer->freeFlag = TRUE;
-      }
-      else {
-         assert(0);
+         if (headerPointer->next->freeFlag == FALSE) {
+            headerPointer->freeFlag = TRUE;
+         }
+         else {
+            headerPointer->size += headerSize + headerPointer->next->size;
+            headerPointer->freeFlag = TRUE;
+            headerPointer->next = headerPointer->next->next;
+         }
       }
    }
    else {
-      assert(0);
+      if (headerPointer->next == NULL) {
+         if (headerBefore->freeFlag == FALSE) {
+            headerPointer->freeFlag = TRUE;
+         }
+         else {
+            headerBefore->size += headerSize + headerPointer->size;
+            headerBefore->next = NULL;
+         }
+      }
+      else {
+         if (headerBefore->freeFlag == TRUE) {
+            if (headerPointer->next->freeFlag == TRUE) {
+               headerBefore->size += headerSize + headerPointer->size +
+                headerSize + headerPointer->next->size;
+               headerBefore->next = headerPointer->next->next;
+            }
+            else {
+               headerBefore->size += headerSize + headerPointer->size;
+               headerBefore->next = headerPointer->next;
+            }
+         }
+         else {
+            if (headerPointer->next->freeFlag == TRUE) {
+               headerPointer->size += headerSize + headerPointer->next->size;
+               headerPointer->freeFlag = TRUE;
+               headerPointer->next = headerPointer->next->next;
+            }
+            else {
+               headerPointer->freeFlag = TRUE;
+            }
+         }
+      }
    }
 }
 
@@ -194,6 +209,9 @@ void *realloc(void *ptr, size_t size) {
       free(ptr);
       return NULL;
    }
+
+   header *headerBefore = getBeforePointerFromPointer(ptr);
+   header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
    return NULL;
 }
