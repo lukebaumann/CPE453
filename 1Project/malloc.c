@@ -77,25 +77,10 @@ void mallocForTailHeader(header *headerPointer, size_t size) {
       //headerSize, headerPointer->size <= headerSize + 10 + size);
       //puts(buffer);
       while (headerPointer->size <= headerSize + 10 + size) {
-         //putChar('a');
          if (sbrk(BREAK_INCREMENT) < 0) {
          }
-         //sprintf(buffer, "old headerPointer->size: %d\n",
-         //headerPointer->size);
-         //puts(buffer);
          headerPointer->size += BREAK_INCREMENT;
-         //sprintf(buffer, "new headerPointer->size: %d\n",
-         //headerPointer->size);
-         //puts(buffer);
       }
-
-      //sprintf(buffer, "headerPointer: %p\nheaderPointer->allocatedBlock: %p\n
-      //headerPointer->size: %d\nsize: %d\nnextHeader: %p\n
-      //nextHeader->allocatedBlock: %p\n\nsbrk(0): %p\n",
-      //headerPointer, headerPointer->allocatedBlock,
-      //headerPointer->size, size, headerPointer->next,
-      //(void *) (headerPointer->next + 1), sbrk(0));
-      //puts(buffer);
 
       doMalloc(headerPointer, size);
 }
@@ -154,7 +139,7 @@ header *getBeforePointerFromPointer(void *ptr) {
       return NULL;
    }
    else {
-      while ((uint8_t *) headerBefore->next->next > (uint8_t * ) ptr) {
+      while ((uint8_t *) headerBefore->next->next < (uint8_t * ) ptr) {
          headerBefore = headerBefore->next;
       }
    }
@@ -236,6 +221,7 @@ void free(void *ptr) {
 }
 
 void reallocFromTooBig(header *headerPointer, uint32_t size) {
+   putChar('L');
    header *temp;
    header *nextHeader;
    uint32_t oldSize;
@@ -257,6 +243,7 @@ void reallocFromTooBig(header *headerPointer, uint32_t size) {
 }
 
 void reallocIntoNextHeader(header *headerPointer, uint32_t size) {
+   putChar('N');
    headerPointer->size += headerSize + headerPointer->next->size;
    headerPointer->next = headerPointer->next->next;
 
@@ -268,6 +255,7 @@ void reallocIntoNextHeader(header *headerPointer, uint32_t size) {
 }
 
 void reallocIntoPreviousAndNextHeader(header *headerBefore, uint32_t size) {
+   putChar('B');
    header *temp = headerBefore->next->next->next;
 
    headerBefore->size += headerSize + headerBefore->next->size + headerSize
@@ -284,6 +272,7 @@ void reallocIntoPreviousAndNextHeader(header *headerBefore, uint32_t size) {
 }
 
 void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
+   putChar('P');
    header *temp = headerBefore->next->next;
 
    headerBefore->size += headerSize + headerBefore->next->size;
@@ -299,6 +288,7 @@ void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
 }
 
 void *reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size) {
+   putChar('C');
    void *block = malloc(size);
    memmove(block, headerPointer->allocatedBlock, headerPointer->size);
    free(headerPointer->allocatedBlock);
@@ -320,16 +310,48 @@ void *realloc(void *ptr, size_t size) {
    header *headerBefore = getBeforePointerFromPointer(ptr);
    header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
-   // If I am shrinking my allocatedBlock
-   if (headerPointer->size > size) {
-      // and there is enough room for another header, then resize
-      if (headerPointer->size > size + headerSize) {
+   putChar('5');
+   sprintf(buffer, "ptr: %p\n", ptr);
+   puts(buffer);
+   sprintf(buffer, "headerPointer: %p\n", headerPointer);
+   puts(buffer);
+   sprintf(buffer, "headerPointer->next: %p\n", headerPointer->next);
+   puts(buffer);
+   sprintf(buffer, "headerPointer->next->next: %p\n", headerPointer->next->next);
+   puts(buffer);
+
+
+   if (headerPointer->next->next == NULL) {
+      putChar('a');
+      if (headerPointer->size + headerSize + headerPointer->next->size
+       > size + headerSize) {
+      putChar('b');
+         headerPointer->size += headerSize + headerPointer->next->size;
+         headerPointer->next = NULL;
+
+      putChar('c');
          reallocFromTooBig(headerPointer, size);
+      putChar('d');
       }
-      // Otherwise, do nothing
-      else {}
+      else {
+      putChar('e');
+         headerPointer->size += headerSize + headerPointer->next->size;
+         headerPointer->next = NULL;
+      putChar('f');
+         while (headerPointer->size <= headerSize + 10 + size) {
+            if (sbrk(BREAK_INCREMENT) < 0) {
+            }
+      putChar('g');
+            headerPointer->size += BREAK_INCREMENT;
+         }
+
+      putChar('h');
+         reallocFromTooBig(headerPointer, size);
+      putChar('i');
+      }
    }
    else if (headerPointer == head) {
+   putChar('9');
       // Never will happen
       //if (headerPointer->next == NULL) {
       //   headerPointer->freeFlag = TRUE;
@@ -337,10 +359,14 @@ void *realloc(void *ptr, size_t size) {
       //else {
          if (headerPointer->next->freeFlag == TRUE &&
           headerPointer->size + headerSize + headerPointer->next->size > size) {
+   putChar('8');
             reallocIntoNextHeader(headerPointer, size);
+   putChar('8');
          }
          else {
+   putChar('1');
             block = reallocIntoCompletelyNewBlock(headerPointer, size);
+   putChar('1');
          }
       //}
    }
@@ -357,27 +383,36 @@ void *realloc(void *ptr, size_t size) {
       //}
       //else {
          // If after is free and big enough...
+   putChar('3');
          if (headerPointer->next->freeFlag == TRUE &&
           headerPointer->size + headerSize + headerPointer->next->size > size) {
+   putChar('4');
             reallocIntoNextHeader(headerPointer, size);
+   putChar('4');
          }
          // If both before and after are free and big enough...
          else if (headerBefore->freeFlag == TRUE
           && headerPointer->next->freeFlag == TRUE
           && headerBefore->size + headerSize + headerPointer->size
           + headerSize + headerPointer->next->size > size) {
+   putChar('5');
             reallocIntoPreviousAndNextHeader(headerBefore, size);
             headerPointer = headerBefore;
+   putChar('5');
          }
          // If only before is free and big enough...
          else if (headerBefore->freeFlag == TRUE &&
           headerBefore->size + headerSize + headerPointer->size > size) {
+   putChar('6');
             reallocIntoPreviousHeader(headerBefore, size);
             headerPointer = headerBefore;
+   putChar('6');
          }
          // If neither before or after are free or big enough...
          else {
-            reallocIntoCompletelyNewBlock(headerPointer, size);
+   putChar('7');
+            block = reallocIntoCompletelyNewBlock(headerPointer, size);
+   putChar('7');
          }
       //}
    }
