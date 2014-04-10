@@ -23,7 +23,7 @@ typedef struct header {
 
 void *programBreak = 0;
 header *head = NULL;
-static uint32_t headerSize = sizeof(header);
+static uint32_t headerSize = sizeof(header) + 16 - sizeof(header) % 16;
 char buffer[10000];
 #define BREAK_INCREMENT 0x100
 #define TRUE 1
