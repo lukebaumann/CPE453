@@ -45,7 +45,7 @@ void makeHeader(header *headerPointer) {
 
 void doMalloc(header *headerPointer, size_t size) {
    header *nextHeader;
-   header *temp = headerPointer;
+   header *temp = headerPointer->next;
    size_t currentSize = headerPointer->size;
    
    headerPointer->freeFlag = FALSE;
@@ -59,7 +59,7 @@ void doMalloc(header *headerPointer, size_t size) {
     (void *) (((uint8_t *) nextHeader) + ceil16(headerSize)); 
    nextHeader->freeFlag = TRUE;
    nextHeader->size = currentSize - ceil16(headerSize) - headerPointer->size;
-   nextHeader->next = temp->next;
+   nextHeader->next = temp;
 }
 
 void reverseString(char *string, uint8_t stringSize) {
