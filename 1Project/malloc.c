@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <assert.h>
 
 typedef struct header {
@@ -54,7 +55,7 @@ void doMalloc(header *headerPointer, size_t size) {
    nextHeader->next = temp->next;
 }
 
-void *myMalloc(size_t size) {
+void *malloc(size_t size) {
    header *headerPointer = head;
    header *temp;
 
@@ -103,7 +104,7 @@ void *myMalloc(size_t size) {
    return headerPointer->allocatedBlock;
 }
 
-void myFree(void *ptr) {
+void free(void *ptr) {
    header *headerPointer = head;
    header *headerBefore;
 

@@ -1,4 +1,4 @@
-intel−all: lib/libmalloc.so lib64/libmalloc.so 
+intel-all: lib/libmalloc.so lib64/libmalloc.so
 
 lib/libmalloc.so: lib malloc32.o
 	gcc $(CFLAGS) -fpic -m32 -shared -o $@ malloc32.o 
