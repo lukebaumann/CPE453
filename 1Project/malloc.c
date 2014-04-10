@@ -11,10 +11,10 @@ typedef struct header {
 } header;
 
 void *programBreak = 0;
-header *head;
+header *head = NULL;
 uint8_t heapSize = 0;
 static uint8_t headerSize = sizeof(header);
-#define BREAK_INCREMENT 65536
+#define BREAK_INCREMENT 37
 #define TRUE 1
 #define FALSE 0
 
@@ -33,7 +33,12 @@ void makeHeader(header *headerPointer) {
     (void *) (((uint8_t *) headerPointer) + ceil16(headerSize)); 
    headerPointer->freeFlag = TRUE;
    headerPointer->size = BREAK_INCREMENT - ceil16(headerSize);
-   headerPointer-> next = NULL;
+   /*
+   putchar('0' + headerPointer->size / 10);
+   putchar('0' + headerPointer->size % 10);
+   putchar('\n');
+   */
+   headerPointer->next = NULL;
 }
 
 void doMalloc(header *headerPointer, size_t size) {
@@ -42,7 +47,7 @@ void doMalloc(header *headerPointer, size_t size) {
    size_t currentSize = headerPointer->size;
    
    headerPointer->freeFlag = FALSE;
-   headerPointer->size = (size);
+   headerPointer->size = ceil16(size);
    headerPointer->next =
     (header *) (((uint8_t *) headerPointer->allocatedBlock)
     + headerPointer->size);
@@ -55,22 +60,70 @@ void doMalloc(header *headerPointer, size_t size) {
    nextHeader->next = temp->next;
 }
 
+void reverseString(char *string, uint8_t stringSize) {
+   uint8_t stringIndex = 0;
+   char temp = 0;
+
+   while (stringIndex * 2 < stringSize - 1) {
+      temp = string[stringIndex];
+      string[stringIndex] = string[stringSize - stringIndex - 1];
+      string[stringSize - stringIndex - 1] = temp;
+
+      stringIndex++;
+   }
+}
+
+uint8_t myITOA10(char *string, uint32_t i) {
+   uint8_t stringIndex = 0;
+   uint8_t remainder = 0;
+
+   do {
+      /*if (stringIndex > MAX_STRING_LENGTH) {
+         assert(0);
+      }*/
+
+      remainder = i % 10; 
+      string[stringIndex++] = '0' + remainder;
+
+      i /= 10; 
+   } while (i > 0); 
+
+   string[stringIndex] = '\0';
+
+   reverseString(string, stringIndex);
+   
+   return stringIndex;
+}
+
 void *malloc(size_t size) {
+   if (size <= 0) {
+      return NULL;
+   }
+
    header *headerPointer = head;
    header *temp;
 
    if (headerPointer == NULL) {
-      headerPointer = (header *) sbrk(0);
-      putc('o');
-      sbrk(BREAK_INCREMENT);
-      putc('k');
+      headerPointer = (header *) sbrk(BREAK_INCREMENT);
       makeHeader(headerPointer);
-      putc('a');
       head = headerPointer;
-      putc('y');
+
+      // If it allocates the exact size of the heap,
+      // it grows the heap to allow for the final free header
+      while (headerPointer->size - size <= ceil16(headerSize)) {
+         if (sbrk(BREAK_INCREMENT) < 0) {
+         }
+         headerPointer->size += BREAK_INCREMENT;
+         /*
+   putchar('0' + headerPointer->size / 10 / 10);
+   putchar('0' + headerPointer->size / 10 % 10);
+   putchar('0' + headerPointer->size / 10);
+   putchar('0' + headerPointer->size % 10);
+   putchar('\n');
+   */
+      }
 
       doMalloc(headerPointer, size);
-      putc('!');
    }
    else {
       while (headerPointer->next != NULL && 
@@ -81,14 +134,13 @@ void *malloc(size_t size) {
       if (headerPointer->next == NULL) { 
          // If it allocates the exact size of the heap,
          // it grows the heap to allow for the final free header
-         if (headerPointer->size - size > ceil16(headerSize)) {
-            doMalloc(headerPointer, size);
-         }
-         else {
-            sbrk(BREAK_INCREMENT);
+         while (headerPointer->size - size <= ceil16(headerSize)) {
+            if (sbrk(BREAK_INCREMENT) < 0) {
+            }
             headerPointer->size += BREAK_INCREMENT;
-            doMalloc(headerPointer, size);
          }
+
+         doMalloc(headerPointer, size);
       }
       else {
          // If there is enough space for my size and the size of the next
@@ -103,13 +155,27 @@ void *malloc(size_t size) {
             headerPointer->freeFlag = FALSE;
          }
       }
-
    }
+
+   /*
+   if (size < 9000 && size > 1000) {
+      char buffer[100];
+      myITOA10(buffer, size);
+      //snprintf(buffer, 100,
+      //"brk: %p\nheaderPointer: %p\nallocatedBlock: %p\n\n",
+      // sbrk(0), headerPointer, headerPointer->allocatedBlock);
+      puts(buffer);
+      putchar('\n');
+   }*/
 
    return headerPointer->allocatedBlock;
 }
 
 void free(void *ptr) {
+   if (ptr == NULL) {
+      return;
+   }
+
    header *headerPointer = head;
    header *headerBefore;
 
