@@ -32,7 +32,7 @@ void makeHeader(header *headerPointer) {
    headerPointer->allocatedBlock =
     (void *) (((uint8_t *) headerPointer) + ceil16(headerSize)); 
    headerPointer->freeFlag = TRUE;
-   headerPointer->size = BREAK_INCREMENT - headerSize;
+   headerPointer->size = BREAK_INCREMENT - ceil16(headerSize);
    headerPointer-> next = NULL;
 }
 
@@ -51,7 +51,7 @@ void doMalloc(header *headerPointer, size_t size) {
    nextHeader->allocatedBlock =
     (void *) (((uint8_t *) nextHeader) + ceil16(headerSize)); 
    nextHeader->freeFlag = TRUE;
-   nextHeader->size = currentSize - headerSize - headerPointer->size;
+   nextHeader->size = currentSize - ceil16(headerSize) - headerPointer->size;
    nextHeader->next = temp->next;
 }
 
@@ -61,11 +61,16 @@ void *malloc(size_t size) {
 
    if (headerPointer == NULL) {
       headerPointer = (header *) sbrk(0);
+      putc('o');
       sbrk(BREAK_INCREMENT);
+      putc('k');
       makeHeader(headerPointer);
+      putc('a');
       head = headerPointer;
+      putc('y');
 
       doMalloc(headerPointer, size);
+      putc('!');
    }
    else {
       while (headerPointer->next != NULL && 
@@ -76,7 +81,7 @@ void *malloc(size_t size) {
       if (headerPointer->next == NULL) { 
          // If it allocates the exact size of the heap,
          // it grows the heap to allow for the final free header
-         if (headerPointer->size - size > headerSize) {
+         if (headerPointer->size - size > ceil16(headerSize)) {
             doMalloc(headerPointer, size);
          }
          else {
@@ -89,7 +94,7 @@ void *malloc(size_t size) {
          // If there is enough space for my size and the size of the next
          // header I need to make, use the space and make a new header to
          // divide the block 
-         if (headerPointer->size - size > headerSize) {
+         if (headerPointer->size - size > ceil16(headerSize)) {
             doMalloc(headerPointer, size);
          }
          // Else use the original block with its size that might be a
@@ -123,7 +128,7 @@ void free(void *ptr) {
       }
       else if (headerPointer->next->freeFlag == TRUE) {
          headerPointer->next = headerPointer->next->next;
-         headerPointer->size += headerSize + headerPointer->next->size;
+         headerPointer->size += ceil16(headerSize) + headerPointer->next->size;
          headerPointer->freeFlag = TRUE;
       }
       else {
@@ -136,7 +141,7 @@ void free(void *ptr) {
       }
       else if (headerBefore->freeFlag == TRUE) {
          headerBefore->next = headerPointer->next;
-         headerBefore->size += headerSize + headerPointer->next->size;
+         headerBefore->size += ceil16(headerSize) + headerPointer->next->size;
       }
       else {
          assert(0);
@@ -146,19 +151,19 @@ void free(void *ptr) {
       if (headerBefore->freeFlag == TRUE
        && headerPointer->next->freeFlag == TRUE) {
          headerBefore->next = headerPointer->next->next;
-         headerBefore->size += headerSize + headerPointer->size +
-            headerSize + headerPointer->next->size;
+         headerBefore->size += ceil16(headerSize) + headerPointer->size +
+            ceil16(headerSize) + headerPointer->next->size;
       }
       else if (headerBefore->freeFlag == FALSE
        && headerPointer->next->freeFlag == TRUE) {
          headerPointer->next = headerPointer->next->next;
-         headerPointer->size += headerSize + headerPointer->next->size;
+         headerPointer->size += ceil16(headerSize) + headerPointer->next->size;
          headerPointer->freeFlag = TRUE;
       }
       else if (headerBefore->freeFlag == TRUE
        && headerPointer->next->freeFlag == FALSE) {
          headerBefore->next = headerPointer->next;
-         headerBefore->size += headerSize + headerPointer->size;
+         headerBefore->size += ceil16(headerSize) + headerPointer->size;
       }
       else if (headerBefore->freeFlag == FALSE
        && headerPointer->next->freeFlag == FALSE) {
