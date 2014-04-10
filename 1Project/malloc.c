@@ -28,21 +28,16 @@ void *calloc(size_t nmemb, size_t size) {
 
 void makeHeader(header *headerPointer) {
    headerPointer->allocatedBlock =
-    (void *) (((uint8_t *) headerPointer) + headerSize); 
+    (void *) (headerPointer + 1); 
    headerPointer->freeFlag = TRUE;
    headerPointer->size = BREAK_INCREMENT - headerSize;
-   /*
-   putchar('0' + headerPointer->size / 10);
-   putchar('0' + headerPointer->size % 10);
-   putchar('\n');
-   */
    headerPointer->next = NULL;
 }
 
 void doMalloc(header *headerPointer, size_t size) {
    header *nextHeader;
    header *temp = headerPointer->next;
-   size_t currentSize = headerPointer->size;
+   size_t oldSize = headerPointer->size;
    
    headerPointer->freeFlag = FALSE;
    headerPointer->size = size;
@@ -52,45 +47,32 @@ void doMalloc(header *headerPointer, size_t size) {
 
    nextHeader = headerPointer->next;
    nextHeader->allocatedBlock =
-    (void *) (((uint8_t *) nextHeader) + headerSize); 
+    (void *) (nextHeader + 1); 
    nextHeader->freeFlag = TRUE;
-   nextHeader->size = currentSize - headerSize - headerPointer->size;
+   nextHeader->size = oldSize - headerSize - size;
    nextHeader->next = temp;
 }
 
-void reverseString(char *string, uint8_t stringSize) {
-   uint8_t stringIndex = 0;
-   char temp = 0;
+void mallocForTailHeader(header *headerPointer, size_t size) {
+      // If it allocates the exact size of the heap,
+      // it grows the heap to allow for the final free header
+      while (headerPointer->size - size <= headerSize) {
+         if (sbrk(BREAK_INCREMENT) < 0) {
+         }
+         headerPointer->size += BREAK_INCREMENT;
+      }
 
-   while (stringIndex * 2 < stringSize - 1) {
-      temp = string[stringIndex];
-      string[stringIndex] = string[stringSize - stringIndex - 1];
-      string[stringSize - stringIndex - 1] = temp;
-
-      stringIndex++;
-   }
+      doMalloc(headerPointer, size);
 }
 
-uint8_t myITOA10(char *string, uint32_t i) {
-   uint8_t stringIndex = 0;
-   uint8_t remainder = 0;
+header *firstMalloc(size_t size) {
+   header *headerPointer = (header *) sbrk(BREAK_INCREMENT);
+   makeHeader(headerPointer);
+   head = headerPointer;
 
-   do {
-      /*if (stringIndex > MAX_STRING_LENGTH) {
-         assert(0);
-      }*/
+   mallocForTailHeader(headerPointer, size);
 
-      remainder = i % 10; 
-      string[stringIndex++] = '0' + remainder;
-
-      i /= 10; 
-   } while (i > 0); 
-
-   string[stringIndex] = '\0';
-
-   reverseString(string, stringIndex);
-   
-   return stringIndex;
+   return headerPointer;
 }
 
 void *malloc(size_t size) {
@@ -102,26 +84,7 @@ void *malloc(size_t size) {
    header *temp;
 
    if (headerPointer == NULL) {
-      headerPointer = (header *) sbrk(BREAK_INCREMENT);
-      makeHeader(headerPointer);
-      head = headerPointer;
-
-      // If it allocates the exact size of the heap,
-      // it grows the heap to allow for the final free header
-      while (headerPointer->size - size <= headerSize) {
-         if (sbrk(BREAK_INCREMENT) < 0) {
-         }
-         headerPointer->size += BREAK_INCREMENT;
-         /*
-   putchar('0' + headerPointer->size / 10 / 10);
-   putchar('0' + headerPointer->size / 10 % 10);
-   putchar('0' + headerPointer->size / 10);
-   putchar('0' + headerPointer->size % 10);
-   putchar('\n');
-   */
-      }
-
-      doMalloc(headerPointer, size);
+      headerPointer = firstMalloc(size);
    }
    else {
       while (headerPointer->next != NULL && 
@@ -130,15 +93,7 @@ void *malloc(size_t size) {
       }
 
       if (headerPointer->next == NULL) { 
-         // If it allocates the exact size of the heap,
-         // it grows the heap to allow for the final free header
-         while (headerPointer->size - size <= headerSize) {
-            if (sbrk(BREAK_INCREMENT) < 0) {
-            }
-            headerPointer->size += BREAK_INCREMENT;
-         }
-
-         doMalloc(headerPointer, size);
+         mallocForTailHeader(headerPointer, size);
       }
       else {
          // If there is enough space for my size and the size of the next
@@ -154,17 +109,6 @@ void *malloc(size_t size) {
          }
       }
    }
-
-   /*
-   if (size < 9000 && size > 1000) {
-      char buffer[100];
-      myITOA10(buffer, size);
-      //snprintf(buffer, 100,
-      //"brk: %p\nheaderPointer: %p\nallocatedBlock: %p\n\n",
-      // sbrk(0), headerPointer, headerPointer->allocatedBlock);
-      puts(buffer);
-      putchar('\n');
-   }*/
 
    return headerPointer->allocatedBlock;
 }
