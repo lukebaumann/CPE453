@@ -21,7 +21,9 @@ static uint8_t headerSize = sizeof(header);
 
 // The last header is always free and fills the rest of the space in the heap
 void *calloc(size_t nmemb, size_t size) {
-   return 0;
+   void *block = malloc(nmemb * size);
+   memset(block, 0, nmemb * size);
+   return block;
 }
 
 uint32_t ceil16(uint32_t i) {
