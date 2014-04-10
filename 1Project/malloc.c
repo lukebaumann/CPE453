@@ -353,8 +353,10 @@ void *realloc(void *ptr, size_t size) {
             reallocIntoNextHeader(headerPointer, size);
          }
          // If both before and after are free and big enough...
-         else if (headerBefore->freeFlag == TRUE && headerPointer->next->freeFlag == TRUE &&
-          headerBefore->size + headerSize + headerPointer->size + headerSize + headerPointer->next->size > size) {
+         else if (headerBefore->freeFlag == TRUE
+          && headerPointer->next->freeFlag == TRUE
+          && headerBefore->size + headerSize + headerPointer->size
+          + headerSize + headerPointer->next->size > size) {
             reallocIntoPreviousAndNextHeader(headerBefore, size);
             headerPointer = headerBefore;
          }
