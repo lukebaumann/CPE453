@@ -10,9 +10,13 @@ void *malloc(size_t size) {
    return myMalloc(size + PADDING);
 }
 
-// Wrapper to call my calloc function
+// Not a wrapper. Calls my malloc function
+// with a pad and sets only the data that I am focused on
+// using to be equal to 0
 void *calloc(size_t nmemb, size_t size) {
-   myCalloc(nmemb, size + PADDING);
+   void * block = myMalloc(nmemb * (size + PADDING));
+   memset(block, 0, nmemb * size);
+   return block;
 }
 
 // Wrapper to call my free function
@@ -41,6 +45,8 @@ void *myMalloc(size_t size) {
       headerPointer = firstMalloc(size);
    }
    else {
+      // While my header is not the last header and I am either not free
+      // or too small, continue down the linked list
       while (headerPointer->next != NULL && 
          !(headerPointer->freeFlag == TRUE && headerPointer->size >= size)) {
          headerPointer = headerPointer->next;
@@ -64,15 +70,15 @@ void *myMalloc(size_t size) {
       }
    }
 
-   return (void *) ceil16((uint32_t) headerPointer->allocatedBlock) ;
+   // Align the pointer that is returned from malloc. This is safe to
+   // do because the extra padding that is given is large enough to
+   // allow the first bytes that allocatedBlock point to to be unused
+   return (void *) ceil16((uint32_t) headerPointer->allocatedBlock);
 }
 
-void *myCalloc(size_t nmemb, size_t size) {
-   void *block = myMalloc(nmemb * size);
-   memset(block, 0, nmemb * size);
-   return block;
-}
-
+// Frees the block of memory that the ptr is a part of.
+// If ptr is not within a previously allocated block,
+// the behavior is undefined.
 void myFree(void *ptr) {
    if (ptr == NULL) {
       return;
@@ -81,62 +87,59 @@ void myFree(void *ptr) {
    header *headerBefore = getBeforePointerFromPointer(ptr);
    header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
-
    if (headerPointer == head) {
-      if (headerPointer->next == NULL) {
+      // If the next header is used, no need to combine blocks
+      if (headerPointer->next->freeFlag == FALSE) {
          headerPointer->freeFlag = TRUE;
       }
+      // If the next header is free, I need to combined myself with
+      // the header in front of me.
       else {
-         if (headerPointer->next->freeFlag == FALSE) {
-            headerPointer->freeFlag = TRUE;
+         headerPointer->size += headerSize + headerPointer->next->size;
+         headerPointer->freeFlag = TRUE;
+         headerPointer->next = headerPointer->next->next;
+      }
+   }
+   else {
+      if (headerBefore->freeFlag == TRUE) {
+         // If the previous and next blocks are free, I need to
+         // combine all of them
+         if (headerPointer->next->freeFlag == TRUE) {
+            headerBefore->size += headerSize + headerPointer->size +
+             headerSize + headerPointer->next->size;
+            headerBefore->next = headerPointer->next->next;
          }
+         // If only the previous block is free, I need to combine it
+         // and the current block
          else {
+            headerBefore->size += headerSize + headerPointer->size;
+            headerBefore->next = headerPointer->next;
+         }
+      }
+      else {
+         // If only the next block is free, I need to combine it
+         // and the current block
+         if (headerPointer->next->freeFlag == TRUE) {
             headerPointer->size += headerSize + headerPointer->next->size;
             headerPointer->freeFlag = TRUE;
             headerPointer->next = headerPointer->next->next;
          }
-      }
-   }
-   else {
-      if (headerPointer->next == NULL) {
-         if (headerBefore->freeFlag == FALSE) {
+         // If the previous and next blocks are not free, I do not
+         // need to combine
+         else {
             headerPointer->freeFlag = TRUE;
-         }
-         else {
-            headerBefore->size += headerSize + headerPointer->size;
-            headerBefore->next = NULL;
-         }
-      }
-      else {
-         if (headerBefore->freeFlag == TRUE) {
-            if (headerPointer->next->freeFlag == TRUE) {
-               headerBefore->size += headerSize + headerPointer->size +
-                headerSize + headerPointer->next->size;
-               headerBefore->next = headerPointer->next->next;
-            }
-            else {
-               headerBefore->size += headerSize + headerPointer->size;
-               headerBefore->next = headerPointer->next;
-            }
-         }
-         else {
-            if (headerPointer->next->freeFlag == TRUE) {
-               headerPointer->size += headerSize + headerPointer->next->size;
-               headerPointer->freeFlag = TRUE;
-               headerPointer->next = headerPointer->next->next;
-            }
-            else {
-               headerPointer->freeFlag = TRUE;
-            }
          }
       }
    }
 }
 
 void *myRealloc(void *ptr, size_t size) {
+   // If ptr is NULL, realloc behaves as malloc
    if (ptr == NULL) {
       return myMalloc(size);
    }
+
+   // If size is 0, realloc behaves as free
    if (size == 0) {
       myFree(ptr);
       return NULL;
@@ -148,6 +151,7 @@ void *myRealloc(void *ptr, size_t size) {
    header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
    if (headerPointer->next->next == NULL) {
+
       if (headerPointer->size + headerSize + headerPointer->next->size
        > size + headerSize) {
          headerPointer->size += headerSize + headerPointer->next->size;
