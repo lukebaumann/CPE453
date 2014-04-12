@@ -25,15 +25,11 @@ int main(void) {
 
    for (i = 0; i < 100000; i = i + 2) {
       temp1 = rand() % 100000;
-     // printNumber(temp1);
       arraym[i] = malloc(temp1);
-     // printPointer(0, arraym[i]);
       memcpy(arraym[i], test, temp1);
 
       temp2 = rand() % 100000;
-     // printNumber(temp2);
       arrayr[i] = realloc(arraym[i], temp2);
-     // printPointer(2, arrayr[i]);
 
       
       if (memcmp(arrayr[i], test, min(temp1, temp2))) {

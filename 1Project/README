@@ -1,7 +1,11 @@
 Luke Baumann
 
-No special instructions.
+No special instructions besides adding the library directory.
+
+Did not check the environment variables or record any errors in stderr
 
 I have ran multiple tests verifying that the memory that is allocated from
 malloc is copied correctly and I do not understand why it is not passing
-test 20 and 21.
+test 20 and 21. I have included my main.c that tests. make main will compile it.
+
+Source is hosted on github: https://github.com/lukebaumann/CPE453/tree/master/1Project
