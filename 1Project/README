@@ -1,0 +1,7 @@
+Luke Baumann
+
+No special instructions.
+
+I have ran multiple tests verifying that the memory that is allocated from
+malloc is copied correctly and I do not understand why it is not passing
+test 20 and 21.

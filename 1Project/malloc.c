@@ -84,7 +84,7 @@ void *myMalloc(size_t size) {
    // Align the pointer that is returned from malloc. This is safe to
    // do because the extra padding that is given is large enough to
    // allow the first bytes that block point to to be unused
-   return (void *) ceil16((uint32_t) (headerPointer + 1));
+   return (void *) ceil16((intptr_t) (headerPointer + 1));
 }
 
 // Calls my malloc function with a pad and sets only the 
@@ -160,14 +160,14 @@ void *myRealloc(void *ptr, size_t size) {
    }
 
    block = block == NULL ?
-      (void *) ceil16((uint32_t) (headerPointer + 1)) : block;
+      (void *) ceil16((intptr_t) (headerPointer + 1)) : block;
 
    return block;
 }
 
 // Ceiling function used for aligning pointer addresses
-uint32_t ceil16(uint32_t i) {
-   return i % 16 ? i + 16 - i % 16 : i;
+void *ceil16(intptr_t i) {
+   return (void *) (i % 16 ? i + 16 - i % 16 : i);
 }
 
 // Does the first sbrk, makes the first header, and mallocs the

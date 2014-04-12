@@ -18,8 +18,5 @@ malloc32.o: malloc.c
 malloc64.o: malloc.c
 	gcc $(CFLAGS) -fpic -m64 -c -o malloc64.o malloc.c
 
-main: main.c
-	gcc main.c -L./lib64 -lmalloc
-
 clean:
 	rm -f *.o *.a

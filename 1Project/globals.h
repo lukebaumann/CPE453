@@ -21,7 +21,7 @@ void *myCalloc(size_t nmemb, size_t size);
 void myFree(void *ptr);
 void *myRealloc(void *ptr, size_t size);
 void putChar(char c); 
-uint32_t ceil16(uint32_t i);
+void *ceil16(intptr_t i);
 void makeHeader(header *headerPointer);
 void doMalloc(header *headerPointer, size_t size);
 void mallocForTailHeader(header *headerPointer, size_t size);
