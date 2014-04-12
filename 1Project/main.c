@@ -1,52 +1,51 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 
+void printPointer(int num, void *ptr);
 int main(void) {
    uint32_t i = 0;
-   char buffer[1000];
    void *ptr;
-   uint8_t *array[10000];
+   uint8_t *arraym[100];
+   uint8_t *arrayr[100];
    uint8_t test[8193];
 
-   for (i = 0; i < 8193; i++) {
-      test[i] = i;
-   }
+      arraym[0] = malloc(1000);
+      printPointer(0, arraym[0]);
+      arraym[1] = malloc(1000);
+      printPointer(1, arraym[1]);
+      arraym[2] = malloc(1000);
+      printPointer(2, arraym[2]);
+      arraym[3] = malloc(1000);
+      printPointer(3, arraym[3]);
+      arraym[4] = malloc(1000);
+      printPointer(4, arraym[4]);
 
-   for (i = 1; i < 8193; i++) {
-      
-      array[i] = malloc(i * sizeof(uint8_t));
-      sprintf(buffer, "array[%d] (malloc): %p\n", i, array[i]);
-   //   puts(buffer);
+      arrayr[0] = realloc(arraym[3], 1000);
+      printPointer(0, arrayr[0]);
 
-      if (i %2) {
-      memcpy(array[i], test, i);
+      assert(arrayr[0] == arraym[3]);
 
-      array[i] = realloc(array[i], 100 * sizeof(uint8_t));
-      sprintf(buffer, "array[%d] (realloc): %p\n", i, array[i]);
-     // puts(buffer);
+      arraym[6] = malloc(1000);
+      printPointer(6, arraym[6]);
+      assert(arraym[6] > arraym[4]);
 
-      if (memcmp(array[i], test, i > 100 ? 100 : i)) {
-         sprintf(buffer, "i: %d\n", i);
-         puts(buffer);
-         sprintf(buffer, "Different\n");
-         puts(buffer);
+      arrayr[1] = realloc(arrayr[0], 1001);
+      printPointer(1, arrayr[1]);
+      assert(arrayr[1] > arraym[6]);
 
-         int j = 0;
-         for (j = 0; j < (i > 100 ? 100 : i); j++) {
-            sprintf(buffer, "%d %d", test[j], array[i][j]);
-            puts(buffer);
-         }
-         putchar('\n');
-      }
-      }
-   }
+      arraym[7] = malloc(1000);
+      printPointer(7, arraym[7]);
+      assert(arraym[7] == arraym[3]);
 
-   for (i = 0; i < 1000; i++) {
-      free(array[i]);
-   }
 
    return 0;
 }
 
+void printPointer(int num, void *ptr) {
+   char buffer[1000];
+   sprintf(buffer, "%d: %p\n", num, ptr);
+   puts(buffer);
+}
