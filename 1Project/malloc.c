@@ -37,7 +37,7 @@ void *realloc(void *ptr, size_t size) {
       return NULL;
    }
 
-   myRealloc(ptr, size + PADDING);
+   return myRealloc(ptr, size + PADDING);
 }
 
 // Allocates a section of memory in the heap and returns
@@ -83,7 +83,7 @@ void *myMalloc(size_t size) {
 
    // Align the pointer that is returned from malloc. This is safe to
    // do because the extra padding that is given is large enough to
-   // allow the first bytes that allocatedBlock point to to be unused
+   // allow the first bytes that block point to to be unused
    return (void *) ceil16((uint32_t) (headerPointer + 1));
 }
 
@@ -107,17 +107,7 @@ void myFree(void *ptr) {
    header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
    if (headerPointer == head) {
-      // If the next header is used, no need to combine blocks
-      if (headerPointer->next->freeFlag == FALSE) {
-         headerPointer->freeFlag = TRUE;
-      }
-      // If the next header is free, I need to combined myself with
-      // the header in front of me.
-      else {
-         headerPointer->size += headerSize + headerPointer->next->size;
-         headerPointer->freeFlag = TRUE;
-         headerPointer->next = headerPointer->next->next;
-      }
+      freeHead(headerPointer);
    }
    else {
       if (headerBefore->freeFlag == TRUE) {
@@ -152,73 +142,21 @@ void myFree(void *ptr) {
    }
 }
 
+// Reallocates the block pointed to
 void *myRealloc(void *ptr, size_t size) {
    void *block = NULL;
 
    header *headerBefore = getBeforePointerFromPointer(ptr);
    header *headerPointer = getHeaderPointerFromBefore(headerBefore);
 
-   // If I am the last used block, merge with the last block,
-   // and possibly call sbrk until the block is big enough, then
-   // reallocate from the block now that it is too big
    if (headerPointer->next->next == NULL) {
-      headerPointer->size += headerSize + headerPointer->next->size;
-      headerPointer->next = NULL;
-
-      if (headerPointer->size <= size + headerSize) {
-         while (headerPointer->size <= headerSize + size) {
-            if (sbrk(BREAK_INCREMENT) < 0) {
-            }
-            headerPointer->size += BREAK_INCREMENT;
-         }
-      }
-
-      reallocFromTooBig(headerPointer, size);
+      block = reallocateSecondToLastBlock(headerPointer, headerBefore, size);
    }
-   // If I am the first block
    else if (headerPointer == head) {
-      // and the next block is free and big enough, realloc into it
-      if (headerPointer->next->freeFlag == TRUE &&
-       headerPointer->size + headerSize + headerPointer->next->size > size) {
-         reallocIntoNextHeader(headerPointer, size);
-      }
-      // Otherwise, realloc into a brand new place and free the old block
-      else {
-         block = reallocIntoCompletelyNewBlock(headerPointer, size);
-      }
+      block = reallocFirstBlock(headerPointer, size);
    }
-   // If I am a middle block
    else {
-      // If after is free and big enough...
-      if (headerPointer->next->freeFlag == TRUE &&
-       headerPointer->size + headerSize + headerPointer->next->size > size) {
-         reallocIntoNextHeader(headerPointer, size);
-      }
-      // If both before and after are free and big enough...
-      else if (headerBefore->freeFlag == TRUE
-       && headerPointer->next->freeFlag == TRUE
-       && headerBefore->size + headerSize + headerPointer->size
-       + headerSize + headerPointer->next->size > size) {
-         reallocIntoPreviousAndNextHeader(headerBefore, size);
-         headerPointer = headerBefore;
-      }
-      // If only before is free and big enough...
-      else if (headerBefore->freeFlag == TRUE &&
-       headerBefore->size + headerSize + headerPointer->size > size) {
-         reallocIntoPreviousHeader(headerBefore, size);
-         headerPointer = headerBefore;
-      }
-      // If neither before or after are free or big enough...
-      else {
-         // and I am downsizing
-         if (headerPointer->size >= size) {
-            reallocFromTooBig(headerPointer, size);
-         }
-         // If I am expanding, realloc into a new block
-         else {
-            block = reallocIntoCompletelyNewBlock(headerPointer, size);
-         }
-      }
+      block = reallocMiddleBlock(headerPointer, headerBefore, size);
    }
 
    block = block == NULL ?
@@ -393,3 +331,97 @@ void *reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size) {
 
    return block;
 }
+
+// If I am the first block
+void *reallocFirstBlock(header *headerPointer, size_t size) {
+   void *block = NULL;
+
+   // and the next block is free and big enough, realloc into it
+   if (headerPointer->next->freeFlag == TRUE &&
+    headerPointer->size + headerSize + headerPointer->next->size > size) {
+      reallocIntoNextHeader(headerPointer, size);
+   }
+   // Otherwise, realloc into a brand new place and free the old block
+   else {
+      block = reallocIntoCompletelyNewBlock(headerPointer, size);
+   }     
+
+   return block;
+}
+
+// If I am a middle block
+void *reallocMiddleBlock(header *headerPointer,
+ header *headerBefore, size_t size) {
+   void *block = NULL;
+
+   // If after is free and big enough...
+   if (headerPointer->next->freeFlag == TRUE &&
+    headerPointer->size + headerSize + headerPointer->next->size > size) {
+      reallocIntoNextHeader(headerPointer, size);
+   }
+   // If both before and after are free and big enough...
+   else if (headerBefore->freeFlag == TRUE
+    && headerPointer->next->freeFlag == TRUE
+    && headerBefore->size + headerSize + headerPointer->size
+    + headerSize + headerPointer->next->size > size) {
+      reallocIntoPreviousAndNextHeader(headerBefore, size);
+      headerPointer = headerBefore;
+   }
+   // If only before is free and big enough...
+   else if (headerBefore->freeFlag == TRUE &&
+    headerBefore->size + headerSize + headerPointer->size > size) {
+      reallocIntoPreviousHeader(headerBefore, size);
+      headerPointer = headerBefore;
+   }
+   // If neither before or after are free or big enough...
+   else {
+      // and I am downsizing
+      if (headerPointer->size >= size) {
+         reallocFromTooBig(headerPointer, size);
+      }
+      // If I am expanding, realloc into a new block
+      else {
+         block = reallocIntoCompletelyNewBlock(headerPointer, size);
+      }
+   }
+
+   return block;
+}
+
+// If I am the last used block, merge with the last block,
+// and possibly call sbrk until the block is big enough, then
+// reallocate from the block now that it is too big
+void *reallocateSecondToLastBlock(header *headerPointer,
+ header *headerBefore, size_t size) {
+   void *block = NULL;
+
+   headerPointer->size += headerSize + headerPointer->next->size;
+   headerPointer->next = NULL;
+
+   if (headerPointer->size <= size + headerSize) {
+      while (headerPointer->size <= headerSize + size) {
+         if (sbrk(BREAK_INCREMENT) < 0) {
+         }
+         headerPointer->size += BREAK_INCREMENT;
+      }
+   }
+
+   reallocFromTooBig(headerPointer, size);
+   
+   return block;
+}
+
+void freeHead(header *headerPointer) {
+   // If the next header is used, no need to combine blocks
+   if (headerPointer->next->freeFlag == FALSE) {
+      headerPointer->freeFlag = TRUE;
+   }
+   // If the next header is free, I need to combined myself with
+   // the header in front of me.
+   else {
+      headerPointer->size += headerSize + headerPointer->next->size;
+      headerPointer->freeFlag = TRUE;
+      headerPointer->next = headerPointer->next->next;
+   }
+}
+

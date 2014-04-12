@@ -33,6 +33,12 @@ void reallocIntoNextHeader(header *headerPointer, uint32_t size);
 void reallocIntoPreviousAndNextHeader(header *headerBefore, uint32_t size);
 void reallocIntoPreviousHeader(header *headerBefore, uint32_t size);
 void *reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size);
+void *reallocFirstBlock(header *headerPointer, size_t size);
+void *reallocMiddleBlock(header *headerPointer,
+ header *headerBefore, size_t size);
+void *reallocateSecondToLastBlock(header *headerPointer,
+ header *headerBefore, size_t size);
+void freeHead(header *headerPointer);
 
 void *malloc(size_t size);
 void *calloc(size_t nmemb, size_t size);
