@@ -161,9 +161,8 @@ void *myRealloc(void *ptr, size_t size) {
       headerPointer->size += headerSize + headerPointer->next->size;
       headerPointer->next = NULL;
 
-      if (headerPointer->size + headerSize + headerPointer->next->size
-       <= size + headerSize) {
-         while (headerPointer->size <= headerSize + 10 + size) {
+      if (headerPointer->size <= size + headerSize) {
+         while (headerPointer->size <= headerSize + size) {
             if (sbrk(BREAK_INCREMENT) < 0) {
             }
             headerPointer->size += BREAK_INCREMENT;
@@ -261,7 +260,7 @@ void doMalloc(header *headerPointer, size_t size) {
 void mallocForTailHeader(header *headerPointer, size_t size) {
    // If it allocates the exact size of the heap,
    // it grows the heap to allow for the final free header
-   while (headerPointer->size <= headerSize + 10 + size) {
+   while (headerPointer->size <= headerSize + size) {
       if (sbrk(BREAK_INCREMENT) < 0) {
       }
       headerPointer->size += BREAK_INCREMENT;
