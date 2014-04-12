@@ -80,7 +80,7 @@ void *myMalloc(size_t size) {
    // Align the pointer that is returned from malloc. This is safe to
    // do because the extra padding that is given is large enough to
    // allow the first bytes that allocatedBlock point to to be unused
-   return (void *) ceil16((uint32_t) headerPointer->allocatedBlock);
+   return (void *) ceil16((uint32_t) (headerPointer + 1));
 }
 
 // Calls my malloc function with a pad and sets only the 
@@ -220,7 +220,7 @@ void *myRealloc(void *ptr, size_t size) {
 
 
    block = block == NULL ?
-      (void *) ceil16((uint32_t) headerPointer->allocatedBlock) : block;
+      (void *) ceil16((uint32_t) (headerPointer + 1)) : block;
 
    return block;
 }
@@ -236,8 +236,6 @@ uint32_t ceil16(uint32_t i) {
 }
 
 void makeHeader(header *headerPointer) {
-   headerPointer->allocatedBlock =
-    (void *) (headerPointer + 1); 
    headerPointer->freeFlag = TRUE;
    headerPointer->size = BREAK_INCREMENT - headerSize;
    headerPointer->next = NULL;
@@ -251,12 +249,10 @@ void doMalloc(header *headerPointer, size_t size) {
    headerPointer->freeFlag = FALSE;
    headerPointer->size = size;
    headerPointer->next =
-    (header *) (((uint8_t *) headerPointer->allocatedBlock)
+    (header *) (((uint8_t *) (headerPointer + 1))
     + headerPointer->size);
 
    nextHeader = headerPointer->next;
-   nextHeader->allocatedBlock =
-    (void *) (nextHeader + 1); 
    nextHeader->freeFlag = TRUE;
    nextHeader->size = oldSize - headerSize - size;
    nextHeader->next = temp;
@@ -324,12 +320,10 @@ void reallocFromTooBig(header *headerPointer, uint32_t size) {
 
       headerPointer->size = size;
       headerPointer->next =
-       (header *) (((uint8_t *) headerPointer->allocatedBlock)
+       (header *) (((uint8_t *) (headerPointer + 1))
        + headerPointer->size);
 
       nextHeader = headerPointer->next;
-      nextHeader->allocatedBlock =
-       (void *) (nextHeader + 1); 
       nextHeader->freeFlag = TRUE;
       nextHeader->size = oldSize - headerSize - size;
       nextHeader->next = temp;
@@ -349,8 +343,8 @@ void reallocIntoPreviousAndNextHeader(header *headerBefore, uint32_t size) {
    headerBefore->size += headerSize + headerBefore->next->size + headerSize
     + headerBefore->next->next->size;
    
-   memmove(headerBefore->allocatedBlock, 
-    headerBefore->next->allocatedBlock, headerBefore->next->size);
+   memmove(headerBefore + 1, 
+    headerBefore->next + 1, headerBefore->next->size);
    
    headerBefore->next = temp;
 
@@ -362,8 +356,8 @@ void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
 
    headerBefore->size += headerSize + headerBefore->next->size;
    
-   memmove(headerBefore->allocatedBlock, 
-    headerBefore->next->allocatedBlock, headerBefore->next->size);
+   memmove(headerBefore + 1, 
+    headerBefore->next + 1, headerBefore->next->size);
    
    headerBefore->next = temp;
 
@@ -373,8 +367,8 @@ void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
 void *reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size) {
    // To account for malloc's padding, we do not want to double pad
    void *block = myMalloc(size - 16);
-   memmove(block, headerPointer->allocatedBlock, headerPointer->size);
-   myFree(headerPointer->allocatedBlock);
+   memmove(block, headerPointer + 1, headerPointer->size);
+   myFree(headerPointer + 1);
 
    return block;
 }

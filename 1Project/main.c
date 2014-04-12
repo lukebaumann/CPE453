@@ -5,40 +5,33 @@
 #include <string.h>
 
 void printPointer(int num, void *ptr);
+void printNumber(uint32_t num);
 int main(void) {
    uint32_t i = 0;
+   uint32_t temp = 0;
    void *ptr;
-   uint8_t *arraym[100];
-   uint8_t *arrayr[100];
+   uint8_t *arraym[10000];
+   uint8_t *arrayr[10000];
    uint8_t test[8193];
 
-      arraym[0] = malloc(1000);
-      printPointer(0, arraym[0]);
-      arraym[1] = malloc(1000);
-      printPointer(1, arraym[1]);
-      arraym[2] = malloc(1000);
-      printPointer(2, arraym[2]);
-      arraym[3] = malloc(1000);
-      printPointer(3, arraym[3]);
-      arraym[4] = malloc(1000);
-      printPointer(4, arraym[4]);
+   srand(3);
 
-      arrayr[0] = realloc(arraym[3], 1000);
-      printPointer(0, arrayr[0]);
+   for (i = 0; i < 10000; i = i + 2) {
+      temp = rand() % 10000;
+      printNumber(temp);
+      arraym[i] = malloc(temp);
+      printPointer(0, arraym[i]);
 
-      assert(arrayr[0] == arraym[3]);
-
-      arraym[6] = malloc(1000);
-      printPointer(6, arraym[6]);
-      assert(arraym[6] > arraym[4]);
-
-      arrayr[1] = realloc(arrayr[0], 1001);
-      printPointer(1, arrayr[1]);
-      assert(arrayr[1] > arraym[6]);
-
-      arraym[7] = malloc(1000);
-      printPointer(7, arraym[7]);
-      assert(arraym[7] == arraym[3]);
+      temp = rand() % 10000;
+      printNumber(temp);
+      arraym[i + 1] = malloc(temp);
+      printPointer(1, arraym[i + 1]);
+   
+      temp = rand() % 10000;
+      printNumber(temp);
+      arrayr[i] = realloc(arraym[i], temp);
+      printPointer(2, arrayr[i]);
+   }
 
 
    return 0;
@@ -47,5 +40,11 @@ int main(void) {
 void printPointer(int num, void *ptr) {
    char buffer[1000];
    sprintf(buffer, "%d: %p\n", num, ptr);
+   puts(buffer);
+}
+
+void printNumber(uint32_t num) {
+   char buffer[1000];
+   sprintf(buffer, "%u\n", num);
    puts(buffer);
 }
