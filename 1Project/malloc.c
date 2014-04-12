@@ -221,24 +221,39 @@ void *myRealloc(void *ptr, size_t size) {
       }
    }
 
-
    block = block == NULL ?
       (void *) ceil16((uint32_t) (headerPointer + 1)) : block;
 
    return block;
 }
 
+// Ceiling function used for aligning pointer addresses
 uint32_t ceil16(uint32_t i) {
-   //return i;
    return i % 16 ? i + 16 - i % 16 : i;
 }
 
+// Does the first sbrk, makes the first header, and mallocs the
+// first block
+header *firstMalloc(size_t size) {
+   header *headerPointer = (header *) sbrk(BREAK_INCREMENT);
+   makeHeader(headerPointer);
+   head = headerPointer;
+
+   mallocForTailHeader(headerPointer, size);
+
+   return headerPointer;
+}
+
+// Sets the head header
 void makeHeader(header *headerPointer) {
    headerPointer->freeFlag = TRUE;
    headerPointer->size = BREAK_INCREMENT - headerSize;
    headerPointer->next = NULL;
 }
 
+// Does a single malloc on a headerPointer that is ready
+// free and large enough. It breaks the current free block
+// and adds a header in the middle
 void doMalloc(header *headerPointer, size_t size) {
    header *nextHeader;
    header *temp = headerPointer->next;
@@ -256,9 +271,10 @@ void doMalloc(header *headerPointer, size_t size) {
    nextHeader->next = temp;
 }
 
+// Does the malloc for the last block in the linked list.
+// Ensures that there is a final block that is free and fills
+// the rest of the the heap
 void mallocForTailHeader(header *headerPointer, size_t size) {
-   // If it allocates the exact size of the heap,
-   // it grows the heap to allow for the final free header
    while (headerPointer->size <= headerSize + size) {
       if (sbrk(BREAK_INCREMENT) < 0) {
       }
@@ -268,18 +284,14 @@ void mallocForTailHeader(header *headerPointer, size_t size) {
    doMalloc(headerPointer, size);
 }
 
-header *firstMalloc(size_t size) {
-   header *headerPointer = (header *) sbrk(BREAK_INCREMENT);
-   makeHeader(headerPointer);
-   head = headerPointer;
-
-   mallocForTailHeader(headerPointer, size);
-
-   return headerPointer;
-}
-
+// Goes through the linked list of allocated and free blocks
+// looking for the header for the block before the pointer's
+// block. If the pointer is not in the list, behavior is undefined
 header *getBeforePointerFromPointer(void *ptr) {
    header *headerBefore = head;
+   
+   // If the pointer is part of the head header's block,
+   // there is no header before it
    if ((uint8_t *) ptr < ((uint8_t *) (head + 1)) + head->size) {
       return NULL;
    }
@@ -292,6 +304,8 @@ header *getBeforePointerFromPointer(void *ptr) {
    return headerBefore;
 }
 
+// If the header before does not exist, the current is the head.
+// Otherwise, it is the next header
 header *getHeaderPointerFromBefore(header *headerBefore) {
    header *headerPointer;
 
@@ -305,13 +319,12 @@ header *getHeaderPointerFromBefore(header *headerBefore) {
    return headerPointer;
 }
 
+// Make a new header if there is enough room to. Otherwise, do nothing
 void reallocFromTooBig(header *headerPointer, uint32_t size) {
    header *temp;
    header *nextHeader;
    uint32_t oldSize;
 
-   // Make a new header if there is enough room to.
-   // Otherwise, do nothing
    if (headerPointer->size > size + headerSize) {
       temp = headerPointer->next;
       oldSize = headerPointer->size;
@@ -328,6 +341,8 @@ void reallocFromTooBig(header *headerPointer, uint32_t size) {
    }
 }
 
+// Used for the senario where the next block is free. It will add it
+// to itself and then call reallocFromTooBig(...)
 void reallocIntoNextHeader(header *headerPointer, uint32_t size) {
    headerPointer->size += headerSize + headerPointer->next->size;
    headerPointer->next = headerPointer->next->next;
@@ -335,6 +350,9 @@ void reallocIntoNextHeader(header *headerPointer, uint32_t size) {
    reallocFromTooBig(headerPointer, size);
 }
 
+// Used for the senario where the previous and next block is free.
+// It will add itself and the next block to the previous block,
+// move the data to the previous block, and then call reallocFromTooBig(...)
 void reallocIntoPreviousAndNextHeader(header *headerBefore, uint32_t size) {
    header *temp = headerBefore->next->next->next;
 
@@ -349,6 +367,9 @@ void reallocIntoPreviousAndNextHeader(header *headerBefore, uint32_t size) {
    reallocFromTooBig(headerBefore, size);
 }
 
+// Used for the senario where the previous block is free.
+// It will add itself to the previous block, move the data
+// to the previous block, and then call reallocFromTooBig(...)
 void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
    header *temp = headerBefore->next->next;
 
@@ -362,9 +383,11 @@ void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
    reallocFromTooBig(headerBefore, size);
 }
 
+// Used when the current block needs to grow and there are no
+// adjacent free blocks large enough to grow into. Instead, a new block 
+// will be allocated and moved into. Then the orginal block will be freed
 void *reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size) {
-   // To account for malloc's padding, we do not want to double pad
-   void *block = myMalloc(size - 16);
+   void *block = myMalloc(size);
    memmove(block, headerPointer + 1, headerPointer->size);
    myFree(headerPointer + 1);
 

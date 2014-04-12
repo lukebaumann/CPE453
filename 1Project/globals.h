@@ -13,7 +13,6 @@
 typedef struct header {
    uint8_t freeFlag;
    uint32_t size;
-   void *allocatedBlock;
    struct header *next;
 } header;
 
