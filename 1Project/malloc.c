@@ -7,6 +7,10 @@ char buffer[10000];
 
 // Wrapper to call my malloc function
 void *malloc(size_t size) {
+   if (size <= 0) {
+      return NULL;
+   }
+
    return myMalloc(size + PADDING);
 }
 
@@ -24,7 +28,7 @@ void free(void *ptr) {
 void *realloc(void *ptr, size_t size) {
    // If ptr is NULL, realloc behaves as malloc
    if (ptr == NULL) {
-      return myMalloc(size);
+      return malloc(size);
    }
 
    // If size is 0, realloc behaves as free
@@ -224,11 +228,6 @@ void *myRealloc(void *ptr, size_t size) {
    return block;
 }
 
-void putChar(char c) {
-   putchar(c);
-   putchar('\n');
-}
-
 uint32_t ceil16(uint32_t i) {
    //return i;
    return i % 16 ? i + 16 - i % 16 : i;
@@ -281,7 +280,7 @@ header *firstMalloc(size_t size) {
 
 header *getBeforePointerFromPointer(void *ptr) {
    header *headerBefore = head;
-   if ((uint8_t *) ptr < (uint8_t *) headerBefore->next) {
+   if ((uint8_t *) ptr < ((uint8_t *) (head + 1)) + head->size) {
       return NULL;
    }
    else {
