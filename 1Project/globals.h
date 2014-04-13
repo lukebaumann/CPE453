@@ -39,6 +39,7 @@ void *reallocMiddleBlock(header *headerPointer,
 void *reallocateSecondToLastBlock(header *headerPointer,
  header *headerBefore, size_t size);
 void freeHead(header *headerPointer);
+void myMemmove(void * destination, void *source, uint32_t size);
 
 void *malloc(size_t size);
 void *calloc(size_t nmemb, size_t size);
