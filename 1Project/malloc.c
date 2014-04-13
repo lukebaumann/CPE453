@@ -425,6 +425,8 @@ void freeHead(header *headerPointer) {
    }
 }
 
+// This is my version of memmove. It is necessary because the
+// allocated blocks might not be aligned with respect to each other
 void myMemmove(void * destination, void *source, uint32_t size) {
    return memmove((void *) ceil16((intptr_t) destination),
     (void *) ceil16((intptr_t) source), size - PADDING);
