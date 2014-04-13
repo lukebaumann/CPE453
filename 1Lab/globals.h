@@ -19,6 +19,9 @@
 #define CYAN 36
 #define WHITE 37
 
+#define DDRB 0x24
+#define PORTB 0x25
+
 typedef enum { CONTINUE = 0, FINISH } STATE;
 
 // For serial.c
