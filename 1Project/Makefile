@@ -1,4 +1,4 @@
-intel−all: lib/libmalloc.so lib64/libmalloc.so 
+intel-all: lib/libmalloc.so lib64/libmalloc.so
 
 lib/libmalloc.so: lib malloc32.o
 	gcc $(CFLAGS) -fpic -m32 -shared -o $@ malloc32.o 
@@ -17,6 +17,9 @@ malloc32.o: malloc.c
          
 malloc64.o: malloc.c
 	gcc $(CFLAGS) -fpic -m64 -c -o malloc64.o malloc.c
+
+main: main.c
+	gcc main.c -L./lib64 -lmalloc
 
 clean:
 	rm -f *.o *.a
