@@ -8,11 +8,12 @@ void main(void) {
    STATE state = CONTINUE;
 
    serial_init();
-
    
    while (1) {
       switch (state) {
+      // This is the main state in my program
       case CONTINUE:
+         // First it handles any possible input
          inputByte = read_byte();
 
          if (inputByte != 255) {
@@ -28,11 +29,13 @@ void main(void) {
             }
          }
 
+         // Then it turns off the LED and delays
          led_off();
          for (i = 0; i < numDelays; i++) {
             _delay_ms(50);
          }
 
+         // Then it turns on the LED and delays
          led_on();
          for (i = 0; i < numDelays; i++) {
             _delay_ms(50);
@@ -42,6 +45,7 @@ void main(void) {
          break;
 
       case FINISH:
+         // When I finish, just sleep for a second repeatably
          state = FINISH;
          _delay_ms(1000);
          break;
@@ -53,6 +57,8 @@ void main(void) {
    }
 }
 
+// Load the address of DDRB and PORTB into the Z register, then set the
+// fifth bit of each to turn on the LED
 void led_on() {
    asm volatile("ldi r31, 0x0");
    asm volatile("ldi r30, 0x25");
@@ -67,6 +73,8 @@ void led_on() {
    asm volatile ("st z, r17");
 }
 
+// Load the address of DDRB and PORTB into the Z register, then clear the
+// fifth bit of each to turn on the LED
 void led_off() {
    asm volatile("ldi r31, 0x0");
    asm volatile("ldi r30, 0x25");
