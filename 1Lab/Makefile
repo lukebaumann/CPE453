@@ -23,16 +23,16 @@ main: main.c serial.c
 #Be sure to change the device (the argument after -P) to match the device on your computer
 #On Windows, change the argument after -P to appropriate COM port
 program_part1: lab1_part1.hex
-	avrdude -pm328p -P /dev/tty.usbmodem641 -c arduino -F -u -U flash:w:lab1_part1.hex
+	avrdude -pm328p -P /dev/tty.usbmodem411 -c arduino -F -u -U flash:w:lab1_part1.hex
 
 program_part2: lab1_part2.hex
-	avrdude -pm328p -P /dev/tty.usbmodem641 -c arduino -F -u -U flash:w:lab1_part2.hex
+	avrdude -pm328p -P /dev/tty.usbmodem411 -c arduino -F -u -U flash:w:lab1_part2.hex
 
 program_part3: lab1_part3.hex
-	avrdude -pm328p -P /dev/tty.usbmodem641 -c arduino -F -u -U flash:w:lab1_part3.hex
+	avrdude -pm328p -P /dev/tty.usbmodem411 -c arduino -F -u -U flash:w:lab1_part3.hex
 
 program_main: main.hex
-	avrdude -pm328p -P /dev/tty.usbmodem641 -c arduino -F -u -U flash:w:main.hex
+	avrdude -pm328p -P /dev/tty.usbmodem411 -c arduino -F -u -U flash:w:main.hex
 
 #remove build files
 clean:
