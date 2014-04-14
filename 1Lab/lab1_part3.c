@@ -1,11 +1,9 @@
 #include "globals.h"
 
 void main(void) {
-   uint8_t row = 1;
-   uint8_t col = 1;
-   uint8_t color = BLACK;
-   uint8_t inputByte = 0;
-   uint8_t delayTime = 100;
+   volatile uint8_t inputByte = 0;
+   volatile uint8_t numDelays = 1;
+   volatile uint8_t i = 0;
 
    STATE state = CONTINUE;
 
@@ -15,33 +13,34 @@ void main(void) {
    while (1) {
       switch (state) {
       case CONTINUE:
-         /*
          inputByte = read_byte();
 
-         if (inputByte != 255 && delayTime <= 65530) {
-            if (inputByte == 'a') {
-               delayTime += 5;
+         if (inputByte != 255) {
+            if (inputByte == 'a' && numDelays < 100) {
+               numDelays++;
             }
-            else if (inputByte == 'z' && delayTime >= 5) {
-               delayTime -= 5;
+            else if (inputByte == 'z' && numDelays > 0) {
+               numDelays--;
             }
             else if (inputByte == 'q') {
                state = FINISH;
                break;
             }
-         }*/
-
-         led_on();
-
-         _delay_ms(100);
+         }
 
          led_off();
+         for (i = 0; i < numDelays; i++) {
+            _delay_ms(50);
+         }
 
-         _delay_ms(100);
+         led_on();
+         for (i = 0; i < numDelays; i++) {
+            _delay_ms(50);
+         }
 
          state = CONTINUE;
          break;
-         
+
       case FINISH:
          state = FINISH;
          _delay_ms(1000);
