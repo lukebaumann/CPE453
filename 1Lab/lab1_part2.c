@@ -13,7 +13,6 @@ void main(void) {
    STATE state = CONTINUE;
 
    serial_init();
-
    
    while (1) {
       switch (state) {
@@ -25,6 +24,10 @@ void main(void) {
             break;
          }
 
+         // Every 5 ms,
+         // Clear the screen
+         // Increment and print the first through fourth number
+         // The second and fourth numbers are incremented by 1000
          clear_screen();
          set_cursor(1, 1);
          print_int(++num1);

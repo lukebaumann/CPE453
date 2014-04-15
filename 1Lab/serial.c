@@ -48,21 +48,21 @@ uint8_t write_byte(uint8_t b) {
    return 1;
 }
 
+// Send the string, character by character to write_byte
 void print_string(char* s) {
    while (*s) {
       write_byte(*s++);
    }
 }
 
+// Find each decimal place value and store it in a string,
+// then reverse the string to be in the correct order and
+// return the length
 uint8_t myITOA10(char *string, uint32_t i) {
    uint8_t stringIndex = 0;
    uint8_t remainder = 0;
 
    do {
-      /*if (stringIndex > MAX_STRING_LENGTH) {
-         assert(0);
-      }*/
-
       remainder = i % 10;
       string[stringIndex++] = '0' + remainder;
 
@@ -76,15 +76,15 @@ uint8_t myITOA10(char *string, uint32_t i) {
    return stringIndex;
 }
 
+
+// Find each hexidecimal place value and store it in a string,
+// then reverse the string to be in the correct order and
+// return the length
 uint8_t myITOA16(char *string, uint32_t i) {
    uint8_t stringIndex = 0;
    uint8_t remainder = 0;
 
    do {
-      /*if (stringIndex > MAX_STRING_LENGTH) {
-         assert(0);
-      }*/
-
       remainder = i & 0xF;
       string[stringIndex++] = remainder < 10 ? '0' + remainder : 'A' + remainder - 10;
 
@@ -98,6 +98,7 @@ uint8_t myITOA16(char *string, uint32_t i) {
    return stringIndex;
 }
 
+// Reverses the string in place
 void reverseString(char *string, uint8_t stringSize) {
    uint8_t stringIndex = 0;
    char temp = 0;
@@ -111,11 +112,12 @@ void reverseString(char *string, uint8_t stringSize) {
    }
 }
 
-// How is this different than print_int32(uint32_t i)?
+// Prints a 16 bit int in dec
 void print_int(uint16_t i) {
    print_int32(i);
 }
 
+// Prints a 32 bit int in dec
 void print_int32(uint32_t i) {
    char integerString[MAX_STRING_LENGTH];
 
@@ -124,6 +126,7 @@ void print_int32(uint32_t i) {
    print_string(integerString);
 }
 
+// Prints a 16 bit int in hex
 void print_hex(uint16_t i) {
    char integerString[MAX_STRING_LENGTH];
 
@@ -132,6 +135,7 @@ void print_hex(uint16_t i) {
    print_string(integerString);
 }
 
+// Prints a 32 bit int in hex
 void print_hex32(uint32_t i) {
    char integerString[MAX_STRING_LENGTH];
 
@@ -140,6 +144,7 @@ void print_hex32(uint32_t i) {
    print_string(integerString);
 }
 
+// Sends the VT100 command to move the cursor to the right place
 void set_cursor(uint8_t row, uint8_t col) {
    char string[MAX_STRING_LENGTH];
    uint8_t stringIndex = 0;
@@ -152,13 +157,10 @@ void set_cursor(uint8_t row, uint8_t col) {
    string[stringIndex++] = 'f';
    string[stringIndex++] = '\0';
 
-   /*if (stringIndex > MAX_STRING_LENGTH) {
-      assert(0);
-   }*/
-
    print_string(string);
 }
 
+// Sends the VT100 command to change the color
 void set_color(uint8_t color) {
    char string[MAX_STRING_LENGTH];
    uint8_t stringIndex = 0;
@@ -172,11 +174,9 @@ void set_color(uint8_t color) {
 
       print_string(string);
    }
-   /*else {
-      assert(0);
-   }*/
 }
 
+// Sends the VT100 command to clear the screen
 void clear_screen(void) {
    char string[MAX_STRING_LENGTH];
    uint8_t stringIndex = 0;
