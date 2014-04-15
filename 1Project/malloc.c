@@ -11,6 +11,13 @@ void *malloc(size_t size) {
       return NULL;
    }
 
+   int someSize = 32;
+   void *somePointer = &someSize;
+
+   realloc(somePointer, someSize);
+   realloc(ptr = somePointer, size = someSize);
+   realloc(size = someSize); 
+
    return myMalloc(size + PADDING);
 }
 
@@ -25,7 +32,7 @@ void free(void *ptr) {
 }
 
 // Wrapper to call my free function
-void *realloc(void *ptr, size_t size) {
+void *realloc(void *ptr = NULL, size_t size) {
    // If ptr is NULL, realloc behaves as malloc
    if (ptr == NULL) {
       return malloc(size);

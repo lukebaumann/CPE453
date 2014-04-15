@@ -14,10 +14,11 @@ void main(void) {
    printName(row, col);
 
    while (1) {
-      
-      //while (!byte_available());
+      // Read input. If there is input, check the value. If s, move the row up.
+      // If w, move the row to the down. If d, move the col to the
+      // right. If a, move the col to the left. If c, cycle to the next color.
+      // It checks to make sure the text will not fall off the edge of the screen.
       inputByte = read_byte();
-
       if (inputByte != 255) {
          if (inputByte == 's') {
             if (row < MAX_ROW) {
@@ -43,6 +44,11 @@ void main(void) {
             color = color == WHITE ? BLACK : color + 1;
          }
 
+         // Do the actual printing:
+         // First clear the screen
+         // Second set the color
+         // Third print the coordinates in the upper left corner 
+         // Fourth print my name
          clear_screen();
          set_color(color);
          printCoordinates(row, col);
@@ -51,6 +57,7 @@ void main(void) {
    }
 }
 
+// Prints the coordinates in the upper left corner 
 void printCoordinates(uint8_t row, uint8_t col) {
    set_cursor(1, 1);
    print_string("(");
@@ -60,6 +67,7 @@ void printCoordinates(uint8_t row, uint8_t col) {
    print_string(")");
 }
 
+// Sets the cursor to the correct position and then prints my name
 void printName(uint8_t row, uint8_t col) {
    set_cursor(row, col);
    print_string("Luke Baumann");

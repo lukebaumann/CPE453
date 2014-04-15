@@ -19,7 +19,7 @@
 #define CYAN 36
 #define WHITE 37
 
-typedef enum { CONTINUE = 0, FINISH } STATE;
+typedef enum { CONTINUE = 0, FINISH, WAIT } STATE;
 
 // For serial.c
 uint8_t write_byte(uint8_t b);
