@@ -58,17 +58,28 @@ struct regs_interrupt {
 
 // This structure holds thread specific information
 struct thread_t {
-   uint16_t threadId;
+   uint8_t threadId;
    uint16_t stackSize;
+   uint8_t *lowestStackAddress;
+   uint8_t *highestStackAddress;
+   uint8_t *stackPointer;
 };
 
 // This structure holds system information
 struct system_t {
    struct thread_t threads[MAX_NUMBER_OF_THREADS];
-   uint16_t currentThreadIndex;
+   uint8_t currentThreadId;
+   uint8_t numberOfThreads;
    uint32_t systemTime;
 }
 
 
+void os_init(void);
+void create_thread(uint16_t address, void *args, uint16_t stackSize);
+ISR(TIMER0_COMPA_vect);
+void start_system_timer();
+__attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* oldStackPointer);
+__attribute__((naked)) void thread_start(void);
+uint8_t get_next_thread(void);
 
 #endif
