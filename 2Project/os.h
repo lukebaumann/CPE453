@@ -56,4 +56,19 @@ struct regs_interrupt {
    uint8_t pcl;
 };
 
+// This structure holds thread specific information
+struct thread_t {
+   uint16_t threadId;
+   uint16_t stackSize;
+};
+
+// This structure holds system information
+struct system_t {
+   struct thread_t threads[MAX_NUMBER_OF_THREADS];
+   uint16_t currentThreadIndex;
+   uint32_t systemTime;
+}
+
+
+
 #endif
