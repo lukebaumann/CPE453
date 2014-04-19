@@ -304,7 +304,7 @@ void reallocIntoPreviousAndNextHeader(header *headerBefore, uint32_t size) {
    headerBefore->size += headerSize + headerBefore->next->size + headerSize
     + headerBefore->next->next->size;
    
-   memmove(headerBefore + 1, 
+   myMemmove(headerBefore + 1, 
     headerBefore->next + 1, headerBefore->next->size);
    
    headerBefore->next = temp;
@@ -320,7 +320,7 @@ void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
 
    headerBefore->size += headerSize + headerBefore->next->size;
    
-   memmove(headerBefore + 1, 
+   myMemmove(headerBefore + 1, 
     headerBefore->next + 1, headerBefore->next->size);
    
    headerBefore->next = temp;
@@ -333,7 +333,7 @@ void reallocIntoPreviousHeader(header *headerBefore, uint32_t size) {
 // will be allocated and moved into. Then the orginal block will be freed
 void *reallocIntoCompletelyNewBlock(header *headerPointer, uint32_t size) {
    void *block = myMalloc(size);
-   memmove(block, headerPointer + 1, headerPointer->size);
+   myMemmove(block, headerPointer + 1, headerPointer->size);
    myFree(headerPointer + 1);
 
    return block;
@@ -432,3 +432,9 @@ void freeHead(header *headerPointer) {
    }
 }
 
+// This is my version of memmove. It is necessary because the
+// allocated blocks might not be aligned with respect to each other
+void myMemmove(void * destination, void *source, uint32_t size) {
+   return memmove((void *) ceil16((intptr_t) destination),
+    (void *) ceil16((intptr_t) source), size - PADDING);
+}

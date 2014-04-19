@@ -23,30 +23,23 @@ int main(void) {
       test[i] = i;
    }
 
-   for (i = 0; i < 100000; i = i + 2) {
+   for (i = 0; i < 100000; i++) {
       temp1 = rand() % 100000;
       arraym[i] = malloc(temp1);
-      memcpy(arraym[i], test, temp1);
 
-      temp2 = rand() % 100000;
-      arrayr[i] = realloc(arraym[i], temp2);
-
-      
-      if (memcmp(arrayr[i], test, min(temp1, temp2))) {
-         for (j = 0; j < min(temp1, temp2); j++) {
-            if (arrayr[i][j] != test[j]) {
-               printNumber(i);
-               putchar(arrayr[i][j]);
-               putchar(test[j]);
-               putchar('\n');
-            }
-         }
-         break;
-      }
-
-
+      printNumber(i);
+      arraym[i][0] = 4;
+      arraym[i][temp1 / 2] = 6;
+      arraym[i][temp1 - 1] = 8;
+      printNumber(i);
    }
 
+
+   for (i = 0; i < 100000; i++) {
+      printNumber(i);
+      free(arraym[i]);
+      printNumber(i);
+   }
 
    return 0;
 }
