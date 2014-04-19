@@ -83,26 +83,58 @@ void start_system_timer() {
 }
 
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* oldStackPointer) {
-   volatile asm("push r2");
-   volatile asm("push r3");
-   volatile asm("push r4");
-   volatile asm("push r5");
-   volatile asm("push r6");
-   volatile asm("push r7");
-   volatile asm("push r8");
-   volatile asm("push r9");
-   volatile asm("push r10");
-   volatile asm("push r11");
-   volatile asm("push r12");
-   volatile asm("push r13");
-   volatile asm("push r14");
-   volatile asm("push r15");
-   volatile asm("push r16");
-   volatile asm("push r17");
-   volatile asm("push r28");
-   volatile asm("push r29");
+   // Manually save registers
+   asm volatile("push r2");
+   asm volatile("push r3");
+   asm volatile("push r4");
+   asm volatile("push r5");
+   asm volatile("push r6");
+   asm volatile("push r7");
+   asm volatile("push r8");
+   asm volatile("push r9");
+   asm volatile("push r10");
+   asm volatile("push r11");
+   asm volatile("push r12");
+   asm volatile("push r13");
+   asm volatile("push r14");
+   asm volatile("push r15");
+   asm volatile("push r16");
+   asm volatile("push r17");
+   asm volatile("push r28");
+   asm volatile("push r29");
 
+   // Load the oldStackPointer into z
+   asm volatile("movw r30, r22")
+   asm volatile("movw r31, r23")
 
+   // Save sp intp oldStackPointer
+   asm volatile("st z, sp");
+   
+   // Load newStackPointer into z
+   asm volatile("movw r30, r24")
+   asm volatile("movw r31, r25")
+
+   // Load newStackPointer into sp
+   asm volatile("ld sp, z");
+   
+   // Manually load registers
+   asm volatile("pop r28");
+   asm volatile("pop r17");
+   asm volatile("pop r16");
+   asm volatile("pop r15");
+   asm volatile("pop r14");
+   asm volatile("pop r13");
+   asm volatile("pop r12");
+   asm volatile("pop r11");
+   asm volatile("pop r10");
+   asm volatile("pop r9");
+   asm volatile("pop r8");
+   asm volatile("pop r7");
+   asm volatile("pop r6");
+   asm volatile("pop r5");
+   asm volatile("pop r4");
+   asm volatile("pop r3");
+   asm volatile("pop r2");
 }
 
 __attribute__((naked)) void thread_start(void) {
