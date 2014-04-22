@@ -7,18 +7,34 @@ volatile struct system_t *system;
 
 void os_init(void) {
    system = calloc(sizeof(system_t));
-   system->systemTime = getSystemTime();
+   //system->systemTime = getSystemTime();
 }
 
-// Not sure what to do with args
+// Context switch will pop off the manually saved registers,
+// then ret to thread_start. ret will pop off the automatically
+// saved registers and thread_start will pop off the
+// function address and then ijmp to the function.
+// I am not sure how the args address plays into everything.
+// thread_start address low byte
 void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    struct thread_t newThread = system->threads[system->numberOfThreads];
    newThread.threadId = system->numberOfThreads++;
-   newThread.stackSize = stackSize + sizeof(regs_interrup);
+   newThread.stackSize = stackSize + sizeof(regs_interrupt);
    newThread.lowestStackAddress = malloc(newThread.stackSize * sizeof(uint8_t));
    newThread.highestStackAddress = lowestStackAddress + newThread.stackSize;
-   newThread.stackPointer = highestStackAddress ;
+   newThread.stackPointer = highestStackAddress;
 
+   // Needed for thread_start
+   // args address low byte
+   *newThread.stackPointer-- = 0x00FF & (uint16_t) args;
+   // args address high byte
+   *newThread.stackPointer-- = 0x00FF & ((uint16_t) args >> 8);
+   // function address low byte
+   *newThread.stackPointer-- = 0x00FF & address;
+   // function address high byte
+   *newThread.stackPointer-- = 0x00FF & (address >> 8);
+
+   // Managed by gcc
    // r31
    *newThread.stackPointer-- = 0;
    // r30
@@ -49,10 +65,12 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    *newThread.stackPointer-- = 0;
    // r1
    *newThread.stackPointer-- = 0;
-   // PC low byte
-   *newThread.stackPointer-- = 0x00FF & address;
-   // PC high byte
-   *newThread.stackPointer-- = 0x00FF & (address >> 8);
+   // thread_start address low byte
+   *newThread.stackPointer-- = 0x00FF & (uint16_t) thread_start;
+   // thread_start address high byte
+   *newThread.stackPointer-- = 0x00FF & ((uint16_t) address >> 8);
+
+   // Managed manually
    // r2
    *newThread.stackPointer-- = 0;
    // r3
@@ -176,12 +194,19 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* 
    asm volatile("ret");
 }
 
+// Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave this as the first statement in thread_start()
+   asm volatile("pop 30");
+   asm volatile("pop 31");
+   asm volatile("ijmp z");
 }
 
 void os_start(void) {
-   
+   void *mainStackPointer = sbrk(0);
+   system->currentThreadId = 0;
+   context_switch(system->threads[0].stackPointer, mainStackPointer);
+}
 
 uint8_t get_next_thread(void) {
    return (system->currentThreadId + 1) % system->numberOfThreads;
