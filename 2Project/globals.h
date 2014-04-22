@@ -10,5 +10,6 @@ typedef enum { CONTINUE = 0, FINISH, WAIT } STATE;
 
 void led_on();
 void led_off();
+void blink(void);
 
 #endif

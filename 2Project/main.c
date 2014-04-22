@@ -1,6 +1,16 @@
 #include "globals.h"
 
 void main(void) {
+   os_init();
+
+   create_thread(blink, NULL, 50);
+   os_start();
+
+   while(1);
+
+}
+
+void blink(void) {
    volatile uint8_t numDelays = 1;
    volatile uint8_t i = 0;
 
