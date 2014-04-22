@@ -3,3 +3,4 @@ a.out
 *.hex
 *.o
 *.s
+*temp*
