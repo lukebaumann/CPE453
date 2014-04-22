@@ -1,6 +1,7 @@
 #include "os.h"
 
 volatile struct system_t *system;
+volatile uint32_t counter = 0;
 
 void os_init(void) {
    system = calloc(1, sizeof(struct system_t));
@@ -114,6 +115,7 @@ ISR(TIMER0_COMPA_vect) {
    asm volatile ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24", \
                  "r25", "r26", "r27", "r30", "r31");                        
 
+   counter++;
 
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
@@ -219,6 +221,8 @@ __attribute__((naked)) void thread_start(void) {
 void os_start(void) {
    void *mainStackPointer = 0;
    system->currentThreadId = 0;
+   start_system_timer();
+
    context_switch(system->threads[0].stackPointer, mainStackPointer);
 }
 

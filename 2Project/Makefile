@@ -1,6 +1,6 @@
 #Compile the code
-main: main.c os.c 
-	avr-gcc -mmcu=atmega328p -DF_CPU=16000000 -O2 -o main.elf main.c os.c
+main: main.c os.c serial.c 
+	avr-gcc -mmcu=atmega328p -DF_CPU=16000000 -O2 -o main.elf main.c os.c serial.c
 	avr-objcopy -O ihex main.elf main.hex
 	avr-size main.elf
 
