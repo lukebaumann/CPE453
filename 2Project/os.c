@@ -120,7 +120,8 @@ ISR(TIMER0_COMPA_vect) {
    uint8_t currentThreadId = system->currentThreadId;
    system->currentThreadId = nextThreadId;
    //Call context switch here to switch to that next thread
-   context_switch(system->threads[nextThreadId].stackPointer, system->threads[currentThreadId].stackPointer);
+   context_switch(system->threads[nextThreadId].stackPointer,
+    system->threads[currentThreadId].stackPointer);
 }
 
 //Call this to start the system timer interrupt
@@ -133,7 +134,9 @@ void start_system_timer() {
    OCR0A = 156;             //generate interrupt every 9.98 milliseconds
 }
 
-__attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* oldStackPointer) {
+__attribute__((naked)) void context_switch(uint16_t* newStackPointer,
+ uint16_t* oldStackPointer) {
+
    // Manually save registers
    asm volatile("push r2");
    asm volatile("push r3");
@@ -154,34 +157,36 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* 
    asm volatile("push r28");
    asm volatile("push r29");
 
-   // Load current stack pointer into r16/r17
-   asm volatile("ldi r30, 0x00");
-   asm volatile("ldi r31, 0x5E");
-   asm volatile("ld r16, Z+");
-   asm volatile("ld r17, z");
+   // Changing stack pointer!
+   {
+      // Load current stack pointer into r16/r17
+      asm volatile("ldi r30, 0x00");
+      asm volatile("ldi r31, 0x5E");
+      asm volatile("ld r16, z+");
+      asm volatile("ld r17, z");
 
-   // Load the oldStackPointer into z
-   asm volatile("movw r30, r22");
+      // Load the oldStackPointer into z
+      asm volatile("movw r30, r22");
 
-   // Save current stack pointer into oldStackPointer
-   asm volatile("st Z+, r16");
-   asm volatile("st z, r17");
+      // Save current stack pointer into oldStackPointer
+      asm volatile("st z+, r16");
+      asm volatile("st z, r17");
+      
+      // Load newStackPointer into z
+      asm volatile("movw r30, r24");
+
+      // Load newStackPointer into r16/r17
+      asm volatile("ld r16, z+");
+      asm volatile("ld r17, z");
+
+      // Load newStackPointer into current statck pointer
+      asm volatile("ldi r30, 0x00");
+      asm volatile("ldi r31, 0x5E");
+      asm volatile("st z+, r16");
+      asm volatile("st z, r17");
+   }
    
-   // Load newStackPointer into z
-   asm volatile("movw r30, r24");
-
-   // Load newStackPointer into r16/r17
-   asm volatile("ld r16, Z+");
-   asm volatile("ld r17, z");
-
-   // Load newStackPointer into current statck pointer
-   asm volatile("ldi r30, 0x00");
-   asm volatile("ldi r31, 0x5E");
-   asm volatile("st Z+, r16");
-   asm volatile("st z, r17");
-
-   
-   // Manually load registers
+   // Manually load registers!
    asm volatile("pop r29");
    asm volatile("pop r28");
    asm volatile("pop r17");

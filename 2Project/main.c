@@ -6,8 +6,7 @@ void main(void) {
    create_thread(blink, 0, 50);
    os_start();
 
-   while(1);
-
+//   while(1);
 }
 
 void blink(void) {
@@ -79,5 +78,3 @@ void led_off() {
    asm volatile ("ori r17, 0xEF");
    asm volatile ("st z, r17");
 }
-
-
