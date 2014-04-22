@@ -3,7 +3,7 @@
 void main(void) {
    os_init();
 
-   create_thread(blink, NULL, 50);
+   create_thread(blink, 0, 50);
    os_start();
 
    while(1);
@@ -70,13 +70,13 @@ void led_off() {
    asm volatile("ldi r31, 0x0");
    asm volatile("ldi r30, 0x25");
    asm volatile ("ld r17, z");
-   asm volatile ("ori r17, 0xef");
+   asm volatile ("ori r17, 0xEF");
    asm volatile ("st z, r17");
 
    asm volatile("ldi r31, 0x0");
    asm volatile("ldi r30, 0x24");
    asm volatile ("ld r17, z");
-   asm volatile ("ori r17, 0xef");
+   asm volatile ("ori r17, 0xEF");
    asm volatile ("st z, r17");
 }
 

@@ -1,6 +1,10 @@
 #ifndef OS_H
 #define OS_H
 
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <stdlib.h>
+
 //This structure defines the register order pushed to the stack on a
 //system context switch.
 struct regs_context_switch {
@@ -56,13 +60,15 @@ struct regs_interrupt {
    uint8_t pcl;
 };
 
+#define MAX_NUMBER_OF_THREADS 8
+
 // This structure holds thread specific information
 struct thread_t {
    uint8_t threadId;
    uint16_t stackSize;
-   uint8_t *lowestStackAddress;
-   uint8_t *highestStackAddress;
-   uint8_t *stackPointer;
+   uint16_t *lowestStackAddress;
+   uint16_t *highestStackAddress;
+   uint16_t *stackPointer;
 };
 
 // This structure holds system information
@@ -71,7 +77,7 @@ struct system_t {
    uint8_t currentThreadId;
    uint8_t numberOfThreads;
    uint32_t systemTime;
-}
+};
 
 
 void os_init(void);

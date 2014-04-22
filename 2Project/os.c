@@ -1,12 +1,9 @@
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include "globals.h"
 #include "os.h"
 
 volatile struct system_t *system;
 
 void os_init(void) {
-   system = calloc(sizeof(system_t));
+   system = calloc(1, sizeof(struct system_t));
    //system->systemTime = getSystemTime();
 }
 
@@ -19,10 +16,10 @@ void os_init(void) {
 void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    struct thread_t newThread = system->threads[system->numberOfThreads];
    newThread.threadId = system->numberOfThreads++;
-   newThread.stackSize = stackSize + sizeof(regs_interrupt);
+   newThread.stackSize = stackSize + sizeof(struct regs_interrupt);
    newThread.lowestStackAddress = malloc(newThread.stackSize * sizeof(uint8_t));
-   newThread.highestStackAddress = lowestStackAddress + newThread.stackSize;
-   newThread.stackPointer = highestStackAddress;
+   newThread.highestStackAddress = newThread.lowestStackAddress + newThread.stackSize;
+   newThread.stackPointer = newThread.highestStackAddress;
 
    // Needed for thread_start
    // args address low byte
@@ -123,7 +120,7 @@ ISR(TIMER0_COMPA_vect) {
    uint8_t currentThreadId = system->currentThreadId;
    system->currentThreadId = nextThreadId;
    //Call context switch here to switch to that next thread
-   context_switch(&system->threads[nextThreadId].stackPointer, &system->threads[currentThread].stackPointer);
+   context_switch(system->threads[nextThreadId].stackPointer, system->threads[currentThreadId].stackPointer);
 }
 
 //Call this to start the system timer interrupt
@@ -156,21 +153,33 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* 
    asm volatile("push r17");
    asm volatile("push r28");
    asm volatile("push r29");
-   asm volatile("push pc");
+
+   // Load current stack pointer into r16/r17
+   asm volatile("ldi r30, 0x00");
+   asm volatile("ldi r31, 0x5E");
+   asm volatile("ld r16, Z+");
+   asm volatile("ld r17, z");
 
    // Load the oldStackPointer into z
-   asm volatile("movw r30, r22")
-   asm volatile("movw r31, r23")
+   asm volatile("movw r30, r22");
 
-   // Save sp intp oldStackPointer
-   asm volatile("st z, sp");
+   // Save current stack pointer into oldStackPointer
+   asm volatile("st Z+, r16");
+   asm volatile("st z, r17");
    
    // Load newStackPointer into z
-   asm volatile("movw r30, r24")
-   asm volatile("movw r31, r25")
+   asm volatile("movw r30, r24");
 
-   // Load newStackPointer into sp
-   asm volatile("ld sp, z");
+   // Load newStackPointer into r16/r17
+   asm volatile("ld r16, Z+");
+   asm volatile("ld r17, z");
+
+   // Load newStackPointer into current statck pointer
+   asm volatile("ldi r30, 0x00");
+   asm volatile("ldi r31, 0x5E");
+   asm volatile("st Z+, r16");
+   asm volatile("st z, r17");
+
    
    // Manually load registers
    asm volatile("pop r29");
@@ -197,13 +206,13 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* 
 // Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave this as the first statement in thread_start()
-   asm volatile("pop 30");
-   asm volatile("pop 31");
-   asm volatile("ijmp z");
+   asm volatile("pop r30");
+   asm volatile("pop r31");
+   asm volatile("ijmp");
 }
 
 void os_start(void) {
-   void *mainStackPointer = sbrk(0);
+   void *mainStackPointer = 0;
    system->currentThreadId = 0;
    context_switch(system->threads[0].stackPointer, mainStackPointer);
 }

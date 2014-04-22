@@ -6,6 +6,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
+
 typedef enum { CONTINUE = 0, FINISH, WAIT } STATE;
 
 void led_on();
