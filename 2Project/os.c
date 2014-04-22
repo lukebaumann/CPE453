@@ -164,32 +164,33 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    asm volatile("push r29");
 
    // Changing stack pointer!
+   // r17 might need to be ld or st before r16
    {
       // Load current stack pointer into r16/r17
       asm volatile("ldi r30, 0x00");
       asm volatile("ldi r31, 0x5E");
-      asm volatile("ld r16, z+");
-      asm volatile("ld r17, z");
+      asm volatile("ld r16, z");
+      asm volatile("ld r17, z+1");
 
       // Load the oldStackPointer into z
       asm volatile("movw r30, r22");
 
       // Save current stack pointer into oldStackPointer
-      asm volatile("st z+, r16");
-      asm volatile("st z, r17");
+      asm volatile("st z, r16");
+      asm volatile("st z+1, r17");
       
       // Load newStackPointer into z
       asm volatile("movw r30, r24");
 
       // Load newStackPointer into r16/r17
-      asm volatile("ld r16, z+");
-      asm volatile("ld r17, z");
+      asm volatile("ld r16, z");
+      asm volatile("ld r17, z+1");
 
       // Load newStackPointer into current statck pointer
       asm volatile("ldi r30, 0x00");
       asm volatile("ldi r31, 0x5E");
-      asm volatile("st z+, r16");
-      asm volatile("st z, r17");
+      asm volatile("st z, r16");
+      asm volatile("st z+1, r17");
    }
    
    // Manually load registers!
