@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "os.h"
 
 extern uint32_t counter;
 
@@ -7,10 +8,10 @@ void main(void) {
    //blink();
    os_init();
 
-   create_thread(counting, 0, 50);
+   create_thread((uint16_t) counting, 0, 50);
    os_start();
 
-//   while(1);
+   while(1);
 }
 
 void counting(void) {

@@ -23,16 +23,16 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    newThread.stackPointer = newThread.highestStackAddress;
 
    // Needed for thread_start
-   // args address low byte
-   *newThread.stackPointer-- = 0x00FF & (uint16_t) args;
    // args address high byte
    *newThread.stackPointer-- = 0x00FF & ((uint16_t) args >> 8);
-   // function address low byte
-   *newThread.stackPointer-- = 0x00FF & address;
+   // args address low byte
+   *newThread.stackPointer-- = 0x00FF & (uint16_t) args;
    // function address high byte
    *newThread.stackPointer-- = 0x00FF & (address >> 8);
+   // function address low byte
+   *newThread.stackPointer-- = 0x00FF & address;
 
-   // Managed by gcc
+   /* Managed by gcc
    // r31
    *newThread.stackPointer-- = 0;
    // r30
@@ -63,10 +63,12 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    *newThread.stackPointer-- = 0;
    // r1
    *newThread.stackPointer-- = 0;
+   */
+
+   // thread_start address high byte
+   *newThread.stackPointer-- = 0x00FF & ((uint16_t) thread_start >> 8);
    // thread_start address low byte
    *newThread.stackPointer-- = 0x00FF & (uint16_t) thread_start;
-   // thread_start address high byte
-   *newThread.stackPointer-- = 0x00FF & ((uint16_t) address >> 8);
 
    // Managed manually
    // r2
@@ -116,6 +118,8 @@ ISR(TIMER0_COMPA_vect) {
                  "r25", "r26", "r27", "r30", "r31");                        
 
    counter++;
+
+   led_on();
 
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
