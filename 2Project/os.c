@@ -53,7 +53,7 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    registers->r28 = 0;
    registers->r29 = 0;
 
-   newThread.stackPointer = (uint8_t *) registers;
+   newThread.stackPointer = (uint16_t *) registers;
 }
 
 //This interrupt routine is automatically run every 10 milliseconds
@@ -113,28 +113,28 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
       // Load current stack pointer into r16/r17
       asm volatile("ldi r30, 0x5E");
       asm volatile("ldi r31, 0x00");
-      asm volatile("ld r16, z");
-      asm volatile("ld r17, z+1");
+      asm volatile("ld r16, z+");
+      asm volatile("ld r17, z");
 
       // Load the oldStackPointer into z
       asm volatile("movw r30, r22");
 
       // Save current stack pointer into oldStackPointer
-      asm volatile("st z, r16");
-      asm volatile("st z+1, r17");
+      asm volatile("st z+, r16");
+      asm volatile("st z, r17");
  
       // Load newStackPointer into z
       asm volatile("movw r30, r24");
 
       // Load newStackPointer into r16/r17
-      asm volatile("ld r16, z");
-      asm volatile("ld r17, z+1");
+      asm volatile("ld r16, z+");
+      asm volatile("ld r17, z");
 
       // Load newStackPointer into current statck pointer
       asm volatile("ldi r30, 0x5E");
       asm volatile("ldi r31, 0x00");
-      asm volatile("st z, r16");
-      asm volatile("st z+1, r17");
+      asm volatile("st z+, r16");
+      asm volatile("st z, r17");
    }
 
    // Manually load registers!
