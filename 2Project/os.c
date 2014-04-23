@@ -15,16 +15,16 @@ void os_init(void) {
 // I am not sure how the args address plays into everything.
 // thread_start address low byte
 void create_thread(uint16_t address, void *args, uint16_t stackSize) {
-   struct thread_t newThread = system->threads[system->numberOfThreads];
-   newThread.threadId = system->numberOfThreads++;
-   newThread.stackSize = stackSize + sizeof(struct regs_interrupt);
-   newThread.lowestStackAddress = malloc(newThread.stackSize * sizeof(uint8_t));
-   newThread.highestStackAddress = newThread.lowestStackAddress + newThread.stackSize;
-   newThread.stackPointer = newThread.highestStackAddress;
+   volatile struct thread_t *newThread = &system->threads[system->numberOfThreads];
+
+   newThread->threadId = system->numberOfThreads++;
+   newThread->stackSize = stackSize + sizeof(struct regs_interrupt);
+   newThread->lowestStackAddress = malloc(newThread->stackSize * sizeof(uint8_t));
+   newThread->highestStackAddress = newThread->lowestStackAddress + newThread->stackSize;
+   newThread->stackPointer = newThread->highestStackAddress;
 
    struct regs_context_switch *registers =
-    (struct regs_context_switch *) ((uint8_t *) newThread.stackPointer -
-    sizeof(struct regs_context_switch));
+    (struct regs_context_switch *) newThread->stackPointer - 1;
 
    // thread_start address low byte
    registers->pcl = 0x00FF & (uint16_t) thread_start;
@@ -53,7 +53,7 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    registers->r28 = 0;
    registers->r29 = 0;
 
-   newThread.stackPointer = (uint16_t *) registers;
+   newThread->stackPointer = (uint16_t *) registers;
 }
 
 //This interrupt routine is automatically run every 10 milliseconds

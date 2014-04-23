@@ -17,6 +17,7 @@ void main(void) {
 void counting(void) {
    while(1) {
       print_int(isrCounter);
+      clear_screen();
    }
 }
 
