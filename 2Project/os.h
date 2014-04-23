@@ -87,5 +87,6 @@ void start_system_timer();
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* oldStackPointer);
 __attribute__((naked)) void thread_start(void);
 uint8_t get_next_thread(void);
+uint32_t getSystemTime(void);
 
 #endif

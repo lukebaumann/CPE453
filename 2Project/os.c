@@ -5,7 +5,9 @@ volatile uint32_t isrCounter = 0;
 
 void os_init(void) {
    system = calloc(1, sizeof(struct system_t));
-   //system->systemTime = getSystemTime();
+   system->currentThreadId = 0;
+   system->numberOfThreads = 0;
+   system->systemTime = getSystemTime();
 }
 
 // Context switch will pop off the manually saved registers,
@@ -65,6 +67,7 @@ ISR(TIMER0_COMPA_vect) {
                  "r25", "r26", "r27", "r30", "r31");                        
 
    isrCounter++;
+   print_int(isrCounter);
 
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
@@ -169,13 +172,17 @@ __attribute__((naked)) void thread_start(void) {
 }
 
 void os_start(void) {
-   void *mainStackPointer = 0;
+   uint16_t mainStackPointer = 0;
    system->currentThreadId = 0;
    start_system_timer();
 
-   context_switch(system->threads[0].stackPointer, mainStackPointer);
+   context_switch(system->threads[0].stackPointer, &mainStackPointer);
 }
 
 uint8_t get_next_thread(void) {
    return (system->currentThreadId + 1) % system->numberOfThreads;
+}
+
+uint32_t getSystemTime(void) {
+   return isrCounter * 10;
 }
