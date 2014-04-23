@@ -22,91 +22,38 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    newThread.highestStackAddress = newThread.lowestStackAddress + newThread.stackSize;
    newThread.stackPointer = newThread.highestStackAddress;
 
-   // Needed for thread_start
-   // args address high byte
-   *newThread.stackPointer-- = 0x00FF & ((uint16_t) args >> 8);
-   // args address low byte
-   *newThread.stackPointer-- = 0x00FF & (uint16_t) args;
-   // function address high byte
-   *newThread.stackPointer-- = 0x00FF & (address >> 8);
-   // function address low byte
-   *newThread.stackPointer-- = 0x00FF & address;
+   struct regs_context_switch *registers =
+    (struct regs_context_switch *) ((uint8_t *) newThread.stackPointer -
+    sizeof(struct regs_context_switch));
 
-   /* Managed by gcc
-   // r31
-   *newThread.stackPointer-- = 0;
-   // r30
-   *newThread.stackPointer-- = 0;
-   // r27
-   *newThread.stackPointer-- = 0;
-   // r26
-   *newThread.stackPointer-- = 0;
-   // r25
-   *newThread.stackPointer-- = 0;
-   // r24
-   *newThread.stackPointer-- = 0;
-   // r23
-   *newThread.stackPointer-- = 0;
-   // r22
-   *newThread.stackPointer-- = 0;
-   // r21
-   *newThread.stackPointer-- = 0;
-   // r20
-   *newThread.stackPointer-- = 0;
-   // r19
-   *newThread.stackPointer-- = 0;
-   // r18
-   *newThread.stackPointer-- = 0;
-   // sreg
-   *newThread.stackPointer-- = 0;
-   // r0
-   *newThread.stackPointer-- = 0;
-   // r1
-   *newThread.stackPointer-- = 0;
-   */
-
-   // thread_start address high byte
-   *newThread.stackPointer-- = 0x00FF & ((uint16_t) thread_start >> 8);
    // thread_start address low byte
-   *newThread.stackPointer-- = 0x00FF & (uint16_t) thread_start;
+   registers->pcl = 0x00FF & (uint16_t) thread_start;
+   // thread_start address high byte
+   registers->pch = 0x00FF & ((uint16_t) thread_start >> 8);
+   registers->r2 = 0;
+   registers->r3 = 0;
+   registers->r4 = 0;
+   registers->r5 = 0;
+   registers->r6 = 0;
+   registers->r7 = 0;
+   registers->r8 = 0;
+   registers->r9 = 0;
+   registers->r10 = 0;
+   registers->r11 = 0;
+   registers->r12 = 0;
+   registers->r13 = 0;
+   // args address low byte
+   registers->r14 = 0x00FF & (uint16_t) args; 
+   // args address high byte
+   registers->r15 = 0x00FF & ((uint16_t) args >> 8);
+   // function address low byte
+   registers->r16 = 0x00FF & address;
+   // function address high byte
+   registers->r17 = 0x00FF & (address >> 8);
+   registers->r28 = 0;
+   registers->r29 = 0;
 
-   // Managed manually
-   // r2
-   *newThread.stackPointer-- = 0;
-   // r3
-   *newThread.stackPointer-- = 0;
-   // r4
-   *newThread.stackPointer-- = 0;
-   // r5
-   *newThread.stackPointer-- = 0;
-   // r6
-   *newThread.stackPointer-- = 0;
-   // r7
-   *newThread.stackPointer-- = 0;
-   // r8
-   *newThread.stackPointer-- = 0;
-   // r9
-   *newThread.stackPointer-- = 0;
-   // r10
-   *newThread.stackPointer-- = 0;
-   // r11
-   *newThread.stackPointer-- = 0;
-   // r12
-   *newThread.stackPointer-- = 0;
-   // r13
-   *newThread.stackPointer-- = 0;
-   // r14
-   *newThread.stackPointer-- = 0;
-   // r15
-   *newThread.stackPointer-- = 0;
-   // r16
-   *newThread.stackPointer-- = 0;
-   // r17
-   *newThread.stackPointer-- = 0;
-   // r28
-   *newThread.stackPointer-- = 0;
-   // r29
-   *newThread.stackPointer-- = 0;
+   newThread.stackPointer = (uint8_t *) registers;
 }
 
 //This interrupt routine is automatically run every 10 milliseconds
@@ -164,35 +111,34 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    asm volatile("push r29");
 
    // Changing stack pointer!
-   // r17 might need to be ld or st before r16
    {
       // Load current stack pointer into r16/r17
       asm volatile("ldi r30, 0x00");
       asm volatile("ldi r31, 0x5E");
-      asm volatile("ld r16, z");
-      asm volatile("ld r17, z+1");
+      asm volatile("ld r17, z");
+      asm volatile("ld r16, z+1");
 
       // Load the oldStackPointer into z
       asm volatile("movw r30, r22");
 
       // Save current stack pointer into oldStackPointer
-      asm volatile("st z, r16");
-      asm volatile("st z+1, r17");
-      
+      asm volatile("st z, r17");
+      asm volatile("st z+1, r16");
+ 
       // Load newStackPointer into z
       asm volatile("movw r30, r24");
 
       // Load newStackPointer into r16/r17
-      asm volatile("ld r16, z");
-      asm volatile("ld r17, z+1");
+      asm volatile("ld r17, z");
+      asm volatile("ld r16, z+1");
 
       // Load newStackPointer into current statck pointer
       asm volatile("ldi r30, 0x00");
       asm volatile("ldi r31, 0x5E");
-      asm volatile("st z, r16");
-      asm volatile("st z+1, r17");
+      asm volatile("st z, r17");
+      asm volatile("st z+1, r16");
    }
-   
+
    // Manually load registers!
    asm volatile("pop r29");
    asm volatile("pop r28");
@@ -218,8 +164,8 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
 // Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave this as the first statement in thread_start()
-   asm volatile("pop r30");
-   asm volatile("pop r31");
+   // Might need to pop 31 first
+   asm volatile("movw r30, r16");
    asm volatile("ijmp");
 }
 
