@@ -64,10 +64,6 @@ ISR(TIMER0_COMPA_vect) {
    asm volatile ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24", \
                  "r25", "r26", "r27", "r30", "r31");                        
 
-   counter++;
-
-   led_on();
-
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
    uint8_t currentThreadId = system->currentThreadId;
@@ -113,30 +109,30 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    // Changing stack pointer!
    {
       // Load current stack pointer into r16/r17
-      asm volatile("ldi r30, 0x00");
-      asm volatile("ldi r31, 0x5E");
-      asm volatile("ld r17, z");
-      asm volatile("ld r16, z+1");
+      asm volatile("ldi r30, 0x5E");
+      asm volatile("ldi r31, 0x00");
+      asm volatile("ld r16, z");
+      asm volatile("ld r17, z+1");
 
       // Load the oldStackPointer into z
       asm volatile("movw r30, r22");
 
       // Save current stack pointer into oldStackPointer
-      asm volatile("st z, r17");
-      asm volatile("st z+1, r16");
+      asm volatile("st z, r16");
+      asm volatile("st z+1, r17");
  
       // Load newStackPointer into z
       asm volatile("movw r30, r24");
 
       // Load newStackPointer into r16/r17
-      asm volatile("ld r17, z");
-      asm volatile("ld r16, z+1");
+      asm volatile("ld r16, z");
+      asm volatile("ld r17, z+1");
 
       // Load newStackPointer into current statck pointer
-      asm volatile("ldi r30, 0x00");
-      asm volatile("ldi r31, 0x5E");
-      asm volatile("st z, r17");
-      asm volatile("st z+1, r16");
+      asm volatile("ldi r30, 0x5E");
+      asm volatile("ldi r31, 0x00");
+      asm volatile("st z, r16");
+      asm volatile("st z+1, r17");
    }
 
    // Manually load registers!
@@ -166,6 +162,7 @@ __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave this as the first statement in thread_start()
    // Might need to pop 31 first
    asm volatile("movw r30, r16");
+   asm volatile("movw r24, r14");
    asm volatile("ijmp");
 }
 
