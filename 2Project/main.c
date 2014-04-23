@@ -1,7 +1,7 @@
 #include "globals.h"
 #include "os.h"
 
-extern uint32_t counter;
+extern uint32_t isrCounter;
 
 void main(void) {
    serial_init();
