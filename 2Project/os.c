@@ -67,15 +67,17 @@ ISR(TIMER0_COMPA_vect) {
                  "r25", "r26", "r27", "r30", "r31");                        
 
    isrCounter++;
-   print_int(isrCounter);
 
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
    uint8_t currentThreadId = system->currentThreadId;
    system->currentThreadId = nextThreadId;
+
    //Call context switch here to switch to that next thread
+   /*
    context_switch(system->threads[nextThreadId].stackPointer,
     system->threads[currentThreadId].stackPointer);
+    */
 }
 
 //Call this to start the system timer interrupt
@@ -114,27 +116,29 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    // Changing stack pointer!
    {
       // Load current stack pointer into r16/r17
-      asm volatile("ldi r30, 0x5E");
+      asm volatile("ldi r30, 0x5D");
       asm volatile("ldi r31, 0x00");
       asm volatile("ld r16, z+");
       asm volatile("ld r17, z");
 
       // Load the oldStackPointer into z
-      asm volatile("movw r30, r22");
+      asm volatile("mov r30, r22");
+      asm volatile("mov r31, r23");
 
       // Save current stack pointer into oldStackPointer
       asm volatile("st z+, r16");
       asm volatile("st z, r17");
  
       // Load newStackPointer into z
-      asm volatile("movw r30, r24");
+      asm volatile("mov r30, r24");
+      asm volatile("mov r31, r25");
 
       // Load newStackPointer into r16/r17
       asm volatile("ld r16, z+");
       asm volatile("ld r17, z");
 
       // Load newStackPointer into current statck pointer
-      asm volatile("ldi r30, 0x5E");
+      asm volatile("ldi r30, 0x5D");
       asm volatile("ldi r31, 0x00");
       asm volatile("st z+, r16");
       asm volatile("st z, r17");
@@ -164,10 +168,12 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
 
 // Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
-   sei(); //enable interrupts - leave this as the first statement in thread_start()
+   //sei(); //enable interrupts - leave this as the first statement in thread_start()
    // Might need to pop 31 first
-   asm volatile("movw r30, r16");
-   asm volatile("movw r24, r14");
+   asm volatile("mov r30, r16");
+   asm volatile("mov r31, r17");
+   asm volatile("mov r24, r14");
+   asm volatile("mov r25, r15");
    asm volatile("ijmp");
 }
 

@@ -5,18 +5,22 @@ extern uint32_t isrCounter;
 
 void main(void) {
    serial_init();
-   //blink();
    os_init();
 
    create_thread((uint16_t) counting, 0, 50);
    os_start();
 
-   while(1);
+   while(1) {
+      clear_screen();
+      print_int(isrCounter);
+      _delay_ms(100);
+   }
 }
 
 void counting(void) {
    while(1) {
-      print_int(isrCounter);
+      print_int(isrCounter++);
+      _delay_ms(100);
       clear_screen();
    }
 }
