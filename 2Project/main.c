@@ -26,6 +26,7 @@ void counting(void) {
 }
 
 void blink(void) {
+   print_string("\n\rI'm here!\n\r");
    volatile uint8_t numDelays = 20;
    volatile uint8_t i = 0;
 

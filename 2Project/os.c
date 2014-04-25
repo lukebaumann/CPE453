@@ -35,12 +35,6 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    struct regs_context_switch *registers =
     (struct regs_context_switch *) newThread->stackPointer - 1;
 
-   print_string("Registers: ");
-   print_hex((uint16_t)registers);
-   print_string("\n\rthread_start: ");
-   print_hex((uint16_t)thread_start);
-
-
    // thread_start address low byte
    registers->pcl = 0x00FF & (uint16_t) thread_start;
    // thread_start address high byte
@@ -159,13 +153,6 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
       asm volatile("in r16, __SP_H__");
       asm volatile("in r17, __SP_L__");
 
-      print_string("\n\rnewStackPointer: ");
-      print_hex((uint16_t)newStackPointer);
-      print_string("\n\rold StackPointer 0x005D: ");
-      print_hex((uint16_t)*((uint8_t *) 0x005D));
-      print_string("\n\rold StackPointer 0x005E: ");
-      print_hex((uint16_t)*((uint8_t *) 0x005E));
-
       // Load newStackPointer into current statck pointer
       /*
       asm volatile("ldi r30, 0x5D");
@@ -174,16 +161,9 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
       asm volatile("st z, r17");
       */
 
-      asm volatile("out __SP_H__, r16");
-      asm volatile("out __SP_L__, r17");
+      asm volatile("out __SP_H__, r25");
+      asm volatile("out __SP_L__, r24");
 
-      print_string("\n\rnewStackPointer: ");
-      print_hex((uint16_t)newStackPointer);
-      print_string("\n\rStackPointer 0x005D: ");
-      print_hex((uint16_t)*((uint8_t *) 0x005D));
-      print_string("\n\rStackPointer 0x005E: ");
-      print_hex((uint16_t)*((uint8_t *) 0x005E));
-      print_string("\n\n\r");
    //}
 
    // Manually load registers!
@@ -211,6 +191,7 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
 // Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
    //sei(); //enable interrupts - leave this as the first statement in thread_start()
+   print_string("\n\rI am really here!\n\r");
    asm volatile("mov r30, r16");
    asm volatile("mov r31, r17");
    asm volatile("mov r24, r14");
