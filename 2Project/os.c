@@ -35,6 +35,12 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    struct regs_context_switch *registers =
     (struct regs_context_switch *) newThread->stackPointer - 1;
 
+   print_string("Registers: ");
+   print_hex((uint16_t)registers);
+   print_string("\n\rthread_start: ");
+   print_hex((uint16_t)thread_start);
+
+
    // thread_start address low byte
    registers->pcl = 0x00FF & (uint16_t) thread_start;
    // thread_start address high byte
@@ -63,6 +69,8 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    registers->r29 = 0;
 
    newThread->stackPointer = (uint16_t *) registers;
+
+   return;
 }
 
 //This interrupt routine is automatically run every 10 milliseconds
@@ -143,14 +151,39 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
       asm volatile("mov r31, r25");
 
       // Load newStackPointer into r16/r17
+      /*
       asm volatile("ld r16, z+");
       asm volatile("ld r17, z");
+      */
+      
+      asm volatile("in r16, __SP_H__");
+      asm volatile("in r17, __SP_L__");
+
+      print_string("\n\rnewStackPointer: ");
+      print_hex((uint16_t)newStackPointer);
+      print_string("\n\rold StackPointer 0x005D: ");
+      print_hex((uint16_t)*((uint8_t *) 0x005D));
+      print_string("\n\rold StackPointer 0x005E: ");
+      print_hex((uint16_t)*((uint8_t *) 0x005E));
 
       // Load newStackPointer into current statck pointer
+      /*
       asm volatile("ldi r30, 0x5D");
       asm volatile("ldi r31, 0x00");
       asm volatile("st z+, r16");
       asm volatile("st z, r17");
+      */
+
+      asm volatile("out __SP_H__, r16");
+      asm volatile("out __SP_L__, r17");
+
+      print_string("\n\rnewStackPointer: ");
+      print_hex((uint16_t)newStackPointer);
+      print_string("\n\rStackPointer 0x005D: ");
+      print_hex((uint16_t)*((uint8_t *) 0x005D));
+      print_string("\n\rStackPointer 0x005E: ");
+      print_hex((uint16_t)*((uint8_t *) 0x005E));
+      print_string("\n\n\r");
    //}
 
    // Manually load registers!

@@ -11,10 +11,10 @@ void main(void) {
    os_start();
 
    while(1) {
-      clear_screen();
+/*      clear_screen();
       print_int(isrCounter);
       _delay_ms(100);
-   }
+*/   }
 }
 
 void counting(void) {
