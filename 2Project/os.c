@@ -102,7 +102,6 @@ void start_system_timer() {
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
  uint16_t* oldStackPointer) {
 
-   /*
    // Manually save registers
    asm volatile("push r2");
    asm volatile("push r3");
@@ -127,10 +126,8 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    {
       
       // Load current stack pointer into r16/r17
-      asm volatile("ldi r30, 0x5D");
-      asm volatile("ldi r31, 0x00");
-      asm volatile("ld r16, z+");
-      asm volatile("ld r17, z");
+      asm volatile("in r16, __SP_L__");
+      asm volatile("in r17, __SP_H__");
 
       // Load the oldStackPointer into z
       asm volatile("mov r30, r22");
@@ -139,32 +136,19 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
       // Save current stack pointer into oldStackPointer
       asm volatile("st z+, r16");
       asm volatile("st z, r17");
- */
+ 
       // Load newStackPointer into z
       asm volatile("mov r30, r24");
       asm volatile("mov r31, r25");
 
       // Load newStackPointer into r16/r17
-      /*
       asm volatile("ld r16, z+");
       asm volatile("ld r17, z");
-      */
-      
-      asm volatile("in r16, __SP_H__");
-      asm volatile("in r17, __SP_L__");
 
       // Load newStackPointer into current statck pointer
-      /*
-      asm volatile("ldi r30, 0x5D");
-      asm volatile("ldi r31, 0x00");
-      asm volatile("st z+, r16");
-      asm volatile("st z, r17");
-      */
-
-      asm volatile("out __SP_H__, r25");
-      asm volatile("out __SP_L__, r24");
-
-   //}
+      asm volatile("out __SP_L__, r16");
+      asm volatile("out __SP_H__, r17");
+   }
 
    // Manually load registers!
    asm volatile("pop r29");
@@ -204,8 +188,8 @@ void os_start(void) {
    //system->currentThreadId = 0;
    //start_system_timer();
 
-   //context_switch(system->threads[0].stackPointer, &mainStackPointer);
-   context_switch(thread->stackPointer, &mainStackPointer);
+   //context_switch((uint16_t *) (&system->threads[0].stackPointer), &mainStackPointer);
+   context_switch((uint16_t *) (&thread->stackPointer), &mainStackPointer);
 }
 
 uint8_t get_next_thread(void) {
