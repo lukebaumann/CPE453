@@ -77,7 +77,6 @@ ISR(TIMER0_COMPA_vect) {
 
    isrCounter++;
 
-   /*
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
    uint8_t currentThreadId = system->currentThreadId;
@@ -86,7 +85,6 @@ ISR(TIMER0_COMPA_vect) {
    //Call context switch here to switch to that next thread
    context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
     (uint16_t *) &system->threads[currentThreadId].stackPointer);
-    */
 }
 
 //Call this to start the system timer interrupt
