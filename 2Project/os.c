@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include <util/delay.h>
 #include "os.h"
 
 static volatile struct system_t *system;
@@ -222,7 +223,7 @@ uint8_t getNumberOfThreads(void) {
 
 uint32_t getInterruptsPerSecond(void) {
    uint32_t sysTime = getSystemTime();
-   return sysTime ? isrCounter : isrCounter / getSystemTime();
+   return sysTime ? isrCounter / getSystemTime() : isrCounter;
 }
 
 /**
@@ -240,52 +241,56 @@ uint32_t getInterruptsPerSecond(void) {
  *    stack end (highest possible stack address)
  */
 void printSystemInfo() {
-   clear_screen();
+   while (1) {
+      _delay_ms(100);
+      clear_screen();
 
-   //System time
-   print_string("System time: ");
-   print_int32(getSystemTime());
-   print_string("\n\r");
+      //System time
+      print_string("System time: ");
+      print_int32(getSystemTime());
+      print_string("\n\r");
 
-   //Interrupts per second
-   print_string("Interrupts per second: ");
-   print_int32(getInterruptsPerSecond());
-   print_string("\n\r");
+      //Interrupts per second
+      print_string("Interrupts per second: ");
+      print_int32(getInterruptsPerSecond());
+      print_string("\n\r");
 
-   //Number of threads in the system
-   print_string("Thread count: ");
-   print_int(getNumberOfThreads());
-   print_string("\n\n\r");
+      //Number of threads in the system
+      print_string("Thread count: ");
+      print_int(getNumberOfThreads());
+      print_string("\n\n\r");
 
-   //Per-thread information
-   // int i = 0;
-   // for (; i < system->numberOfThreads; i++) {
-   //    print_string("Thread ");
-   //    print_int(system->threads[i].threadId);
-   //    print_string("\n\r");
+      //Per-thread information
+      int i = 0;
+      for (; i < system->numberOfThreads; i++) {
+         //set_color(BLACK + i + 1)
+         print_string("Thread ");
+         print_int(system->threads[i].threadId);
+         print_string("\n\r");
 
-   //    print_string("Thread PC: ");
-   //    //print_int32();
-   //    print_string("\n\r");
+         print_string("Thread PC: ");
+         //print_int32();
+         print_string("\n\r");
 
-   //    print_string("Stack usage: ");
-   //    //print_int();
-   //    print_string("\n\r");
+         print_string("Stack usage: ");
+         //print_int();
+         print_string("\n\r");
 
-   //    print_string("Total stack size: ");
-   //    //print_int32();
-   //    print_string("\n\r");
+         print_string("Total stack size: ");
+         //print_int32();
+         print_string("\n\r");
 
-   //    print_string("Current top of stack: ");
-   //    //print_int32();
-   //    print_string("\n\r");
+         print_string("Current top of stack: ");
+         //print_int32();
+         print_string("\n\r");
 
-   //    print_string("Stack base: ");
-   //    //print_int32();
-   //    print_string("\n\r");
+         print_string("Stack base: ");
+         //print_int32();
+         print_string("\n\r");
 
-   //    print_string("Stack end: ");
-   //    //print_int32();
-   //    print_string("\n\n\r");
-   // }
+         print_string("Stack end: ");
+         //print_int32();
+         print_string("\n\n\r");
+      }
+   }
 }

@@ -113,17 +113,63 @@ void reverseString(char *string, uint8_t stringSize) {
 }
 
 // Prints a 16 bit int in dec
-void print_int(uint16_t i) {
-   print_int32(i);
-}
+// void print_int(uint16_t i) {
+//    print_int32(i);
+// }
 
 // Prints a 32 bit int in dec
+// void print_int32(uint32_t i) {
+//    char integerString[MAX_STRING_LENGTH];
+
+//    myITOA10(integerString, i);
+
+//    print_string(integerString);
+// }
+
+/*
+ * Print an 8-bit or 16-bit unsigned int
+ *
+ * i integer to print
+ */
+void print_int(uint16_t i) {
+   uint16_t c = 10000;
+
+   while (c && i / c == 0) {
+      i %= c;
+      c /= 10;
+   }
+
+   if (!c)
+      write_byte('0');
+
+   while (c) {
+      write_byte( i / c + '0');
+      i %= c;
+      c /= 10;
+   }
+}
+
+/*
+ * Print a 32-bit unsigned int
+ *
+ * i integer to print
+ */
 void print_int32(uint32_t i) {
-   char integerString[MAX_STRING_LENGTH];
+      uint32_t c = 1000000000;
 
-   myITOA10(integerString, i);
+   while (c && i / c == 0) {
+      i %= c;
+      c /= 10;
+   }
 
-   print_string(integerString);
+   if (!c)
+      write_byte('0');
+
+   while (c) {
+      write_byte( i / c + '0');
+      i %= c;
+      c /= 10;
+   }
 }
 
 // Prints a 16 bit int in hex

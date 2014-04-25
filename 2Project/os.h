@@ -66,6 +66,7 @@ struct regs_interrupt {
 struct thread_t {
    uint8_t threadId;
    uint16_t stackSize;
+   uint16_t programCounter;
    uint16_t *lowestStackAddress;
    uint16_t *highestStackAddress;
    uint16_t *stackPointer;
