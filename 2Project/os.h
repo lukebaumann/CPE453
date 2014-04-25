@@ -89,5 +89,6 @@ __attribute__((naked)) void thread_start(void);
 uint8_t get_next_thread(void);
 uint32_t getSystemTime(void);
 uint8_t getNumberOfThreads(void);
+void printSystemInfo(void);
 
 #endif

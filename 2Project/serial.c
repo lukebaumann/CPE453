@@ -177,15 +177,20 @@ void set_color(uint8_t color) {
 }
 
 // Sends the VT100 command to clear the screen
+// void clear_screen(void) {
+//    char string[MAX_STRING_LENGTH];
+//    uint8_t stringIndex = 0;
+
+//    string[stringIndex++] = '';
+//    string[stringIndex++] = '[';
+//    string[stringIndex++] = '2';
+//    string[stringIndex++] = 'J';
+//    string[stringIndex++] = '\0';
+
+//    print_string(string);
+// }
+
 void clear_screen(void) {
-   char string[MAX_STRING_LENGTH];
-   uint8_t stringIndex = 0;
-
-   string[stringIndex++] = '';
-   string[stringIndex++] = '[';
-   string[stringIndex++] = '2';
-   string[stringIndex++] = 'J';
-   string[stringIndex++] = '\0';
-
-   print_string(string);
+   print_string("\033[2J");
+   print_string("\033[H");
 }

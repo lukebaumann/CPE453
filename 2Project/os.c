@@ -1,3 +1,4 @@
+#include <avr/io.h>
 #include "os.h"
 
 static volatile struct system_t *system;
@@ -12,7 +13,6 @@ void os_init(void) {
    system->currentThreadId = 0;
    system->numberOfThreads = 0;
    system->systemTime = getSystemTime();
-   
 }
 
 /**
@@ -191,7 +191,7 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
 // Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave this as the first statement in thread_start()
-   print_string("\n\rI am really here!\n\r");
+   //print_string("\n\rI am really here!\n\r");
    asm volatile("mov r30, r16");
    asm volatile("mov r31, r17");
    asm volatile("mov r24, r14");
@@ -240,6 +240,8 @@ uint32_t getInterruptsPerSecond(void) {
  *    stack end (highest possible stack address)
  */
 void printSystemInfo() {
+   clear_screen();
+
    //System time
    print_string("System time: ");
    print_int32(getSystemTime());
@@ -256,34 +258,34 @@ void printSystemInfo() {
    print_string("\n\n\r");
 
    //Per-thread information
-   int i;
-   for (i = 0; i < system->numberOfThreads; i++) {
-      print_string("Thread ");
-      print_int(system->threads[i].threadId);
-      print_string("\n\r");
+   // int i = 0;
+   // for (; i < system->numberOfThreads; i++) {
+   //    print_string("Thread ");
+   //    print_int(system->threads[i].threadId);
+   //    print_string("\n\r");
 
-      print_string("Thread PC: ");
-      //print_int32();
-      print_string("\n\r");
+   //    print_string("Thread PC: ");
+   //    //print_int32();
+   //    print_string("\n\r");
 
-      print_string("Stack usage: ");
-      //print_int();
-      print_string("\n\r");
+   //    print_string("Stack usage: ");
+   //    //print_int();
+   //    print_string("\n\r");
 
-      print_string("Total stack size: ");
-      //print_int32();
-      print_string("\n\r");
+   //    print_string("Total stack size: ");
+   //    //print_int32();
+   //    print_string("\n\r");
 
-      print_string("Current top of stack: ");
-      //print_int32();
-      print_string("\n\r");
+   //    print_string("Current top of stack: ");
+   //    //print_int32();
+   //    print_string("\n\r");
 
-      print_string("Stack base: ");
-      //print_int32();
-      print_string("\n\r");
+   //    print_string("Stack base: ");
+   //    //print_int32();
+   //    print_string("\n\r");
 
-      print_string("Stack end: ");
-      //print_int32();
-      print_string("\n\n\r");
-   }
+   //    print_string("Stack end: ");
+   //    //print_int32();
+   //    print_string("\n\n\r");
+   // }
 }
