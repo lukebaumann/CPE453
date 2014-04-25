@@ -5,13 +5,13 @@ volatile struct thread_t *thread;
 volatile uint32_t isrCounter = 0;
 
 void os_init(void) {
-   thread = calloc(1, sizeof(struct thread_t));
-   /*
+   //thread = calloc(1, sizeof(struct thread_t));
+   
    system = calloc(1, sizeof(struct system_t));
    system->currentThreadId = 0;
    system->numberOfThreads = 0;
    system->systemTime = getSystemTime();
-   */
+   
 }
 
 // Context switch will pop off the manually saved registers,
@@ -21,10 +21,11 @@ void os_init(void) {
 // I am not sure how the args address plays into everything.
 // thread_start address low byte
 void create_thread(uint16_t address, void *args, uint16_t stackSize) {
-   //volatile struct thread_t *newThread = &system->threads[system->numberOfThreads];
-   volatile struct thread_t *newThread = thread; 
+   volatile struct thread_t *newThread = &system->threads[system->numberOfThreads];
+   //volatile struct thread_t *newThread = thread; 
 
-//   newThread->threadId = system->numberOfThreads++;
+   newThread->threadId = system->numberOfThreads++;
+
    newThread->stackSize = stackSize + sizeof(struct regs_interrupt) +
     sizeof(struct regs_context_switch);
    newThread->lowestStackAddress = malloc(newThread->stackSize * sizeof(uint8_t));
@@ -84,10 +85,9 @@ ISR(TIMER0_COMPA_vect) {
    system->currentThreadId = nextThreadId;
    */
    //Call context switch here to switch to that next thread
-   /*
+   
    context_switch(system->threads[nextThreadId].stackPointer,
     system->threads[currentThreadId].stackPointer);
-    */
 }
 
 //Call this to start the system timer interrupt
