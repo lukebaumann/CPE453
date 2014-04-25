@@ -1,7 +1,6 @@
 #include "os.h"
 
 volatile struct system_t *system;
-volatile struct thread_t *thread;
 volatile uint32_t isrCounter = 0;
 
 void os_init(void) {
@@ -78,16 +77,16 @@ ISR(TIMER0_COMPA_vect) {
 
    isrCounter++;
 
-   //Call get_next_thread to get the thread id of the next thread to run
    /*
+   //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
    uint8_t currentThreadId = system->currentThreadId;
    system->currentThreadId = nextThreadId;
-   */
+
    //Call context switch here to switch to that next thread
-   
-   context_switch(system->threads[nextThreadId].stackPointer,
-    system->threads[currentThreadId].stackPointer);
+   context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
+    (uint16_t *) &system->threads[currentThreadId].stackPointer);
+    */
 }
 
 //Call this to start the system timer interrupt
@@ -189,8 +188,8 @@ void os_start(void) {
    //system->currentThreadId = 0;
    start_system_timer();
 
-   //context_switch((uint16_t *) (&system->threads[0].stackPointer), &mainStackPointer);
-   context_switch((uint16_t *) (&thread->stackPointer), &mainStackPointer);
+   context_switch((uint16_t *) (&system->threads[0].stackPointer), &mainStackPointer);
+   //context_switch((uint16_t *) (&thread->stackPointer), &mainStackPointer);
 }
 
 uint8_t get_next_thread(void) {
