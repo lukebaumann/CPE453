@@ -1,13 +1,17 @@
 #include "os.h"
 
 volatile struct system_t *system;
+volatile struct thread_t *thread;
 volatile uint32_t isrCounter = 0;
 
 void os_init(void) {
+   thread = calloc(1, sizeof(struct thread_t));
+   /*
    system = calloc(1, sizeof(struct system_t));
    system->currentThreadId = 0;
    system->numberOfThreads = 0;
    system->systemTime = getSystemTime();
+   */
 }
 
 // Context switch will pop off the manually saved registers,
@@ -17,12 +21,15 @@ void os_init(void) {
 // I am not sure how the args address plays into everything.
 // thread_start address low byte
 void create_thread(uint16_t address, void *args, uint16_t stackSize) {
-   volatile struct thread_t *newThread = &system->threads[system->numberOfThreads];
+   //volatile struct thread_t *newThread = &system->threads[system->numberOfThreads];
+   volatile struct thread_t *newThread = thread; 
 
-   newThread->threadId = system->numberOfThreads++;
-   newThread->stackSize = stackSize + sizeof(struct regs_interrupt);
+//   newThread->threadId = system->numberOfThreads++;
+   newThread->stackSize = stackSize + sizeof(struct regs_interrupt) +
+    sizeof(struct regs_context_switch);
    newThread->lowestStackAddress = malloc(newThread->stackSize * sizeof(uint8_t));
-   newThread->highestStackAddress = newThread->lowestStackAddress + newThread->stackSize;
+   newThread->highestStackAddress = newThread->lowestStackAddress +
+    newThread->stackSize;
    newThread->stackPointer = newThread->highestStackAddress;
 
    struct regs_context_switch *registers =
@@ -93,6 +100,7 @@ void start_system_timer() {
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
  uint16_t* oldStackPointer) {
 
+   /*
    // Manually save registers
    asm volatile("push r2");
    asm volatile("push r3");
@@ -115,6 +123,7 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
 
    // Changing stack pointer!
    {
+      
       // Load current stack pointer into r16/r17
       asm volatile("ldi r30, 0x5D");
       asm volatile("ldi r31, 0x00");
@@ -128,7 +137,7 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
       // Save current stack pointer into oldStackPointer
       asm volatile("st z+, r16");
       asm volatile("st z, r17");
- 
+ */
       // Load newStackPointer into z
       asm volatile("mov r30, r24");
       asm volatile("mov r31, r25");
@@ -142,7 +151,7 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
       asm volatile("ldi r31, 0x00");
       asm volatile("st z+, r16");
       asm volatile("st z, r17");
-   }
+   //}
 
    // Manually load registers!
    asm volatile("pop r29");
@@ -169,7 +178,6 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
 // Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
    //sei(); //enable interrupts - leave this as the first statement in thread_start()
-   // Might need to pop 31 first
    asm volatile("mov r30, r16");
    asm volatile("mov r31, r17");
    asm volatile("mov r24, r14");
@@ -179,10 +187,11 @@ __attribute__((naked)) void thread_start(void) {
 
 void os_start(void) {
    uint16_t mainStackPointer = 0;
-   system->currentThreadId = 0;
-   start_system_timer();
+   //system->currentThreadId = 0;
+   //start_system_timer();
 
-   context_switch(system->threads[0].stackPointer, &mainStackPointer);
+   //context_switch(system->threads[0].stackPointer, &mainStackPointer);
+   context_switch(thread->stackPointer, &mainStackPointer);
 }
 
 uint8_t get_next_thread(void) {
