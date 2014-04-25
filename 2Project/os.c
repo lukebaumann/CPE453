@@ -78,10 +78,11 @@ ISR(TIMER0_COMPA_vect) {
    isrCounter++;
 
    //Call get_next_thread to get the thread id of the next thread to run
+   /*
    uint8_t nextThreadId = get_next_thread();
    uint8_t currentThreadId = system->currentThreadId;
    system->currentThreadId = nextThreadId;
-
+   */
    //Call context switch here to switch to that next thread
    /*
    context_switch(system->threads[nextThreadId].stackPointer,
@@ -174,7 +175,7 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
 
 // Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
-   //sei(); //enable interrupts - leave this as the first statement in thread_start()
+   sei(); //enable interrupts - leave this as the first statement in thread_start()
    print_string("\n\rI am really here!\n\r");
    asm volatile("mov r30, r16");
    asm volatile("mov r31, r17");
@@ -186,7 +187,7 @@ __attribute__((naked)) void thread_start(void) {
 void os_start(void) {
    uint16_t mainStackPointer = 0;
    //system->currentThreadId = 0;
-   //start_system_timer();
+   start_system_timer();
 
    //context_switch((uint16_t *) (&system->threads[0].stackPointer), &mainStackPointer);
    context_switch((uint16_t *) (&thread->stackPointer), &mainStackPointer);
