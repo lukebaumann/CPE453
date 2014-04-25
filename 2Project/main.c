@@ -23,6 +23,10 @@ void counting(void) {
    }
 }
 
+// void printSystemInfo() {
+   
+// }
+
 void blink(void) {
    print_string("\n\rI'm here!\n\r");
    volatile uint8_t numDelays = 20;
