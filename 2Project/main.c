@@ -8,6 +8,7 @@ void main(void) {
    os_init();
 
    create_thread((uint16_t) counting, 0, 50);
+   create_thread((uint16_t) blink, 0, 50);
    os_start();
 
    while(1) {}

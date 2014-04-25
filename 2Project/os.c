@@ -4,8 +4,6 @@ volatile struct system_t *system;
 volatile uint32_t isrCounter = 0;
 
 void os_init(void) {
-   //thread = calloc(1, sizeof(struct thread_t));
-   
    system = calloc(1, sizeof(struct system_t));
    system->currentThreadId = 0;
    system->numberOfThreads = 0;
