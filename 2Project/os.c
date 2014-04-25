@@ -1,8 +1,12 @@
 #include "os.h"
 
-volatile struct system_t *system;
-volatile uint32_t isrCounter = 0;
+static volatile struct system_t *system;
+/*static*/ volatile uint32_t isrCounter = 0;
 
+/**
+ * Initializes the operating system. Reserves space from the heap for the
+ * system data structure and initializes the system data structure.
+ */
 void os_init(void) {
    system = calloc(1, sizeof(struct system_t));
    system->currentThreadId = 0;
@@ -11,12 +15,15 @@ void os_init(void) {
    
 }
 
-// Context switch will pop off the manually saved registers,
-// then ret to thread_start. ret will pop off the automatically
-// saved registers and thread_start will pop off the
-// function address and then ijmp to the function.
-// I am not sure how the args address plays into everything.
-// thread_start address low byte
+/**
+ * Adds a new thread to the system data structure. The new thread allocates
+ * space for its stack, and sets its stack bounds, its stack pointer, and
+ * its program counter.
+ *
+ * @param address The address the program counter will assume upon thread start
+ * @param args A pointer to a list of arguments passed into the thread
+ * @param stackSize The stack size in bytes available to the thread
+ */
 void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    volatile struct thread_t *newThread = &system->threads[system->numberOfThreads];
    //volatile struct thread_t *newThread = thread; 
@@ -65,7 +72,11 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    return;
 }
 
-//This interrupt routine is automatically run every 10 milliseconds
+/**
+ * Fetches the next thread to run and then invokes context-switching
+ * between threads every 10 ms. The ISR is based off of the system
+ * timer.
+ */
 ISR(TIMER0_COMPA_vect) {
    //The following statement tells GCC that it can use registers r18-r27, 
    //and r30-31 for this interrupt routine.  These registers (along with
@@ -85,7 +96,10 @@ ISR(TIMER0_COMPA_vect) {
     (uint16_t *) &system->threads[currentThreadId].stackPointer);
 }
 
-//Call this to start the system timer interrupt
+/**
+ * Configures the system timer to trigger an interrupt approximately every
+ * 10 ms.
+ */
 void start_system_timer() {
    TIMSK0 |= _BV(OCIE0A);  //interrupt on compare match
    TCCR0A |= _BV(WGM01);   //clear timer on compare match
@@ -95,6 +109,12 @@ void start_system_timer() {
    OCR0A = 156;             //generate interrupt every 9.98 milliseconds
 }
 
+// Context switch will pop off the manually saved registers,
+// then ret to thread_start. ret will pop off the automatically
+// saved registers and thread_start will pop off the
+// function address and then ijmp to the function.
+// I am not sure how the args address plays into everything.
+// thread_start address low byte
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
  uint16_t* oldStackPointer) {
 
@@ -193,5 +213,77 @@ uint8_t get_next_thread(void) {
 }
 
 uint32_t getSystemTime(void) {
-   return isrCounter * 10;
+   return isrCounter / 100;
+}
+
+uint8_t getNumberOfThreads(void) {
+   return system->numberOfThreads;
+}
+
+uint32_t getInterruptsPerSecond(void) {
+   uint32_t sysTime = getSystemTime();
+   return sysTime ? isrCounter : isrCounter / getSystemTime();
+}
+
+/**
+ * Must show:
+ * 1. System time in seconds
+ * 2. Interrupts per second (number of OS interrupts per second)
+ * 3. Number of threads in the system
+ * 4. Per-thread information
+ *    thread id
+ *    thread pc (starting pc)
+ *    stack usage (number of bytes used by the stack)
+ *    total stack size (number of bytes allocated for the stack)
+ *    current top of stack (current top of stack address)
+ *    stack base (lowest possible stack address)
+ *    stack end (highest possible stack address)
+ */
+void printSystemInfo() {
+   //System time
+   print_string("System time: ");
+   print_int32(getSystemTime());
+   print_string("\n\r");
+
+   //Interrupts per second
+   print_string("Interrupts per second: ");
+   print_int32(getInterruptsPerSecond());
+   print_string("\n\r");
+
+   //Number of threads in the system
+   print_string("Thread count: ");
+   print_int(getNumberOfThreads());
+   print_string("\n\n\r");
+
+   //Per-thread information
+   int i;
+   for (i = 0; i < system->numberOfThreads; i++) {
+      print_string("Thread ");
+      print_int(system->threads[i].threadId);
+      print_string("\n\r");
+
+      print_string("Thread PC: ");
+      //print_int32();
+      print_string("\n\r");
+
+      print_string("Stack usage: ");
+      //print_int();
+      print_string("\n\r");
+
+      print_string("Total stack size: ");
+      //print_int32();
+      print_string("\n\r");
+
+      print_string("Current top of stack: ");
+      //print_int32();
+      print_string("\n\r");
+
+      print_string("Stack base: ");
+      //print_int32();
+      print_string("\n\r");
+
+      print_string("Stack end: ");
+      //print_int32();
+      print_string("\n\n\r");
+   }
 }
