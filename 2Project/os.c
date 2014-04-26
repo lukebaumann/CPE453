@@ -32,13 +32,15 @@ void os_init(void) {
  * @param stackSize The stack size in bytes available to the thread
  */
 void create_thread(uint16_t address, void *args, uint16_t stackSize) {
-   volatile struct thread_t *newThread = &system->threads[system->numberOfThreads];
+   volatile struct thread_t *newThread =
+    &system->threads[system->numberOfThreads];
 
    newThread->threadId = system->numberOfThreads++;
 
    newThread->stackSize = stackSize + sizeof(struct regs_interrupt) +
     sizeof(struct regs_context_switch);
-   newThread->lowestStackAddress = malloc(newThread->stackSize * sizeof(uint8_t));
+   newThread->lowestStackAddress =
+    malloc(newThread->stackSize * sizeof(uint8_t));
    newThread->highestStackAddress = newThread->lowestStackAddress +
     newThread->stackSize;
    newThread->stackPointer = newThread->highestStackAddress;
@@ -87,7 +89,8 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
 ISR(TIMER0_COMPA_vect) {
    //The following statement tells GCC that it can use registers r18-r27, 
    //and r30-31 for this interrupt routine.  These registers (along with
-   //r0 and r1) will automatically be pushed and popped by this interrupt routine.
+   //r0 and r1) will automatically be pushed and popped by
+   //this interrupt routine.
    asm volatile ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24", \
                  "r25", "r26", "r27", "r30", "r31");                        
 
@@ -120,8 +123,6 @@ void start_system_timer() {
 // then ret to thread_start. ret will pop off the automatically
 // saved registers and thread_start will pop off the
 // function address and then ijmp to the function.
-// I am not sure how the args address plays into everything.
-// thread_start address low byte
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
  uint16_t* oldStackPointer) {
 
@@ -195,9 +196,13 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    asm volatile("ret");
 }
 
-// Pop off the function address into the z register and then jump to it
+/**
+ * Move the function address contained in the thread into the Z register for
+ * dereferencing and execution.
+ */
 __attribute__((naked)) void thread_start(void) {
-   sei(); //enable interrupts - leave this as the first statement in thread_start()
+   sei(); //enable interrupts - leave this as the first
+          //statement in thread_start()
    asm volatile("mov r30, r16");
    asm volatile("mov r31, r17");
    asm volatile("mov r24, r14");
@@ -205,33 +210,60 @@ __attribute__((naked)) void thread_start(void) {
    asm volatile("ijmp");
 }
 
+/**
+ * Starts the operating system by starting the system timer and performing the
+ * very first invocation of context_switch().
+ */
 void os_start(void) {
    uint16_t mainStackPointer = 0;
 
    start_system_timer();
 
-   context_switch((uint16_t *) (&system->threads[0].stackPointer), &mainStackPointer);
+   context_switch((uint16_t *) (&system->threads[0].stackPointer), 
+    &mainStackPointer);
 }
 
+/**
+ * Returns the thread following the currently-executing thread in the system's
+ * array list of threads.
+ *
+ * @return The thread following the thread that is currently executing.
+ */
 uint8_t get_next_thread(void) {
    return (system->currentThreadId + 1) % system->numberOfThreads;
 }
 
+/**
+ * Returns the system time in seconds.
+ *
+ * @return The system time, in seconds.
+ */
 uint32_t getSystemTime(void) {
    return isrCounter / 100;
 }
 
+/**
+ * Returns the total number of threads registered in the system.
+ *
+ * @return The total number of threads registered in the system.
+ */
 uint8_t getNumberOfThreads(void) {
    return system->numberOfThreads;
 }
 
+/**
+ * Returns the number of interrupts occuring per second. The result is an
+ * integer.
+ *
+ * @return the number of interrupts occuring per second.
+ */
 uint32_t getInterruptsPerSecond(void) {
    uint32_t sysTime = getSystemTime();
    return sysTime ? isrCounter / getSystemTime() : isrCounter;
 }
 
 /**
- * Must show:
+ * Prints the following information:
  * 1. System time in seconds
  * 2. Interrupts per second (number of OS interrupts per second)
  * 3. Number of threads in the system

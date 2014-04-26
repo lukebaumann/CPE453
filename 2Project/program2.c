@@ -10,6 +10,9 @@
 
 extern uint32_t isrCounter;
 
+/**
+ * Ivokes the operating system.
+ */
 void main(void) {
    serial_init();
    os_init();
@@ -22,8 +25,11 @@ void main(void) {
    while(1) {}
 }
 
+/**
+ * Flashes the LED on and then off with a frequency of 1 second.
+ */
 void blink(void) {
-   volatile uint8_t numDelays = 20;
+   volatile uint8_t numDelays = 5;
    volatile uint8_t i = 0;
 
    while (1) {
