@@ -1,3 +1,10 @@
+/**
+ * File: program2.c
+ * Authors: Luke Baumann, Tyler Kowallis
+ * CPE 453 Program 02
+ * 04/25/2014
+ */
+
 #include "globals.h"
 #include "os.h"
 
@@ -9,32 +16,13 @@ void main(void) {
 
    create_thread((uint16_t) printSystemInfo, 0, 50);
    create_thread((uint16_t) blink, 0, 50);
-   create_thread((uint16_t) counting, 0, 1);
-   create_thread((uint16_t) counting, 0, 1);
-   create_thread((uint16_t) counting, 0, 1);
-   create_thread((uint16_t) counting, 0, 1);
-   create_thread((uint16_t) counting, 0, 1);
-   create_thread((uint16_t) counting, 0, 1);
 
    os_start();
 
    while(1) {}
 }
 
-__attribute__((naked)) void counting(void) {
-   while(1) {
-   asm volatile("push r3");
-   asm volatile("pop r3");
-
-      //print_int(isrCounter);
-      //print_string("\r");
-      //_delay_ms(100);
-      //clear_screen();
-   }
-}
-
 void blink(void) {
-   //print_string("\n\rI'm here!\n\r");
    volatile uint8_t numDelays = 20;
    volatile uint8_t i = 0;
 
@@ -52,34 +40,6 @@ void blink(void) {
       }
    }
 }
-
-// Load the address of DDRB and PORTB into the Z register, then set the
-// fifth bit of each to turn on the LED
-// void led_on() {
-//    asm volatile("ldi r31, 0x00");
-//    asm volatile("ldi r30, 0x25");
-//    asm volatile("ldi r18, 0x20");
-//    asm volatile("st z, r18");
-
-//    asm volatile("ldi r31, 0x00");
-//    asm volatile("ldi r30, 0x24");
-//    asm volatile("ldi r18, 0x20");
-//    asm volatile("st z, r18");
-// }
-
-// Load the address of DDRB and PORTB into the Z register, then clear the
-// fifth bit of each to turn on the LED
-// void led_off() {
-//    asm volatile("ldi r31, 0x00");
-//    asm volatile("ldi r30, 0x25");
-//    asm volatile ("ldi r18, 0x00");
-//    asm volatile ("st z, r18");
-
-//    asm volatile("ldi r31, 0x00");
-//    asm volatile("ldi r30, 0x24");
-//    asm volatile("ldi r18, 0x00");
-//    asm volatile ("st z, r18");
-// }
 
 void led_on() {
    //Set data direction to OUTPUT

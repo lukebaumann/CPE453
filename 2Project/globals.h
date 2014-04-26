@@ -1,4 +1,9 @@
-//Global defines
+/**
+ * File: globals.h
+ * Authors: Luke Baumann, Tyler Kowallis
+ * CPE 453 Program 02
+ * 04/25/2014
+ */
 
 #ifndef GLOBALS_H
 #define GLOBALS_H

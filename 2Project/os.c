@@ -1,8 +1,15 @@
+/**
+ * File: os.c
+ * Authors: Luke Baumann, Tyler Kowallis
+ * CPE 453 Program 02
+ * 04/25/2014
+ */
+
 #include "os.h"
 #include "globals.h"
 
 static volatile struct system_t *system;
-/*static*/ volatile uint32_t isrCounter = 0;
+static volatile uint32_t isrCounter = 0;
 
 /**
  * Initializes the operating system. Reserves space from the heap for the
@@ -26,7 +33,6 @@ void os_init(void) {
  */
 void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    volatile struct thread_t *newThread = &system->threads[system->numberOfThreads];
-   //volatile struct thread_t *newThread = thread; 
 
    newThread->threadId = system->numberOfThreads++;
 
@@ -95,16 +101,6 @@ ISR(TIMER0_COMPA_vect) {
    //Call context switch here to switch to that next thread
    context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
     (uint16_t *) &system->threads[currentThreadId].stackPointer);
-
-   // struct regs_interrupt* oldThreadOverlay =
-   //  (struct regs_interrupt*) ((uint8_t*) system->threads[currentThreadId].stackPointer + sizeof(struct regs_context_switch));
-   // system->threads[currentThreadId].programCounter = 
-   //  oldThreadOverlay->pch << 8 | oldThreadOverlay->pcl;
-
-   // struct regs_interrupt* newThreadOverlay =
-   //  (struct regs_interrupt*) ((uint8_t*) system->threads[nextThreadId].stackPointer + sizeof(struct regs_context_switch));
-   // system->threads[nextThreadId].programCounter = 
-   //  newThreadOverlay->pch << 8 | newThreadOverlay->pcl;
 }
 
 /**
@@ -148,7 +144,6 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    asm volatile("push r17");
    asm volatile("push r28");
    asm volatile("push r29");
-   //asm volatile("push r0");
 
    // Changing stack pointer!
    {
@@ -179,7 +174,6 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    }
 
    // Manually load registers!
-   //asm volatile("pop r29");
    asm volatile("pop r29");
    asm volatile("pop r28");
    asm volatile("pop r17");
@@ -204,7 +198,6 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
 // Pop off the function address into the z register and then jump to it
 __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave this as the first statement in thread_start()
-   //print_string("\n\rI am really here!\n\r");
    asm volatile("mov r30, r16");
    asm volatile("mov r31, r17");
    asm volatile("mov r24, r14");
@@ -214,11 +207,10 @@ __attribute__((naked)) void thread_start(void) {
 
 void os_start(void) {
    uint16_t mainStackPointer = 0;
-   //system->currentThreadId = 0;
+
    start_system_timer();
 
    context_switch((uint16_t *) (&system->threads[0].stackPointer), &mainStackPointer);
-   //context_switch((uint16_t *) (&thread->stackPointer), &mainStackPointer);
 }
 
 uint8_t get_next_thread(void) {
@@ -254,7 +246,7 @@ uint32_t getInterruptsPerSecond(void) {
  */
 void printSystemInfo() {
    clear_screen();
-   
+
    while (1) {
       //_delay_ms(100);
       set_cursor(1, 1);
@@ -289,9 +281,6 @@ void printSystemInfo() {
          print_string("\n\r");
 
          print_string("Stack usage: ");
-         // print_int((uint16_t) system->threads[i].highestStackAddress);
-         // print_string("\n\r");         
-         // print_int((uint16_t) system->threads[i].stackPointer);
          print_int((uint16_t) (system->threads[i].highestStackAddress
             - system->threads[i].stackPointer));
          print_string("\n\r");
