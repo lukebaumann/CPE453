@@ -1,6 +1,5 @@
-#include <avr/io.h>
-#include <util/delay.h>
 #include "os.h"
+#include "globals.h"
 
 static volatile struct system_t *system;
 /*static*/ volatile uint32_t isrCounter = 0;
@@ -37,6 +36,7 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    newThread->highestStackAddress = newThread->lowestStackAddress +
     newThread->stackSize;
    newThread->stackPointer = newThread->highestStackAddress;
+   newThread->functionAddress = address;
 
    struct regs_context_switch *registers =
     (struct regs_context_switch *) newThread->stackPointer - 1;
@@ -68,7 +68,7 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    registers->r28 = 0;
    registers->r29 = 0;
 
-   newThread->stackPointer = (uint16_t *) registers;
+   newThread->stackPointer = (uint8_t *) registers;
 
    return;
 }
@@ -95,6 +95,16 @@ ISR(TIMER0_COMPA_vect) {
    //Call context switch here to switch to that next thread
    context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
     (uint16_t *) &system->threads[currentThreadId].stackPointer);
+
+   // struct regs_interrupt* oldThreadOverlay =
+   //  (struct regs_interrupt*) ((uint8_t*) system->threads[currentThreadId].stackPointer + sizeof(struct regs_context_switch));
+   // system->threads[currentThreadId].programCounter = 
+   //  oldThreadOverlay->pch << 8 | oldThreadOverlay->pcl;
+
+   // struct regs_interrupt* newThreadOverlay =
+   //  (struct regs_interrupt*) ((uint8_t*) system->threads[nextThreadId].stackPointer + sizeof(struct regs_context_switch));
+   // system->threads[nextThreadId].programCounter = 
+   //  newThreadOverlay->pch << 8 | newThreadOverlay->pcl;
 }
 
 /**
@@ -138,6 +148,7 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    asm volatile("push r17");
    asm volatile("push r28");
    asm volatile("push r29");
+   //asm volatile("push r0");
 
    // Changing stack pointer!
    {
@@ -168,6 +179,7 @@ __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
    }
 
    // Manually load registers!
+   //asm volatile("pop r29");
    asm volatile("pop r29");
    asm volatile("pop r28");
    asm volatile("pop r17");
@@ -241,9 +253,13 @@ uint32_t getInterruptsPerSecond(void) {
  *    stack end (highest possible stack address)
  */
 void printSystemInfo() {
+   clear_screen();
+   
    while (1) {
-      _delay_ms(100);
-      clear_screen();
+      //_delay_ms(100);
+      set_cursor(1, 1);
+
+      set_color(MAGENTA);
 
       //System time
       print_string("System time: ");
@@ -263,33 +279,37 @@ void printSystemInfo() {
       //Per-thread information
       int i = 0;
       for (; i < system->numberOfThreads; i++) {
-         //set_color(BLACK + i + 1)
+         set_color(BLACK + i);
          print_string("Thread ");
          print_int(system->threads[i].threadId);
          print_string("\n\r");
 
-         print_string("Thread PC: ");
-         //print_int32();
+         print_string("Thread PC: 0x");
+         print_hex(system->threads[i].functionAddress);
          print_string("\n\r");
 
          print_string("Stack usage: ");
-         //print_int();
+         // print_int((uint16_t) system->threads[i].highestStackAddress);
+         // print_string("\n\r");         
+         // print_int((uint16_t) system->threads[i].stackPointer);
+         print_int((uint16_t) (system->threads[i].highestStackAddress
+            - system->threads[i].stackPointer));
          print_string("\n\r");
 
          print_string("Total stack size: ");
-         //print_int32();
+         print_int(system->threads[i].stackSize);
          print_string("\n\r");
 
-         print_string("Current top of stack: ");
-         //print_int32();
+         print_string("Current top of stack: 0x");
+         print_hex((uint16_t) system->threads[i].stackPointer);
          print_string("\n\r");
 
-         print_string("Stack base: ");
-         //print_int32();
+         print_string("Stack base: 0x");
+         print_hex((uint16_t) system->threads[i].highestStackAddress);
          print_string("\n\r");
 
-         print_string("Stack end: ");
-         //print_int32();
+         print_string("Stack end: 0x");
+         print_hex((uint16_t) system->threads[i].lowestStackAddress);
          print_string("\n\n\r");
       }
    }

@@ -3,6 +3,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <util/delay.h>
 #include <stdlib.h>
 
 //This structure defines the register order pushed to the stack on a
@@ -66,10 +67,10 @@ struct regs_interrupt {
 struct thread_t {
    uint8_t threadId;
    uint16_t stackSize;
-   uint16_t programCounter;
-   uint16_t *lowestStackAddress;
-   uint16_t *highestStackAddress;
-   uint16_t *stackPointer;
+   uint16_t functionAddress;
+   uint8_t *lowestStackAddress;
+   uint8_t *highestStackAddress;
+   uint8_t *stackPointer;
 };
 
 // This structure holds system information

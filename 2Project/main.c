@@ -9,17 +9,27 @@ void main(void) {
 
    create_thread((uint16_t) printSystemInfo, 0, 50);
    create_thread((uint16_t) blink, 0, 50);
+   create_thread((uint16_t) counting, 0, 1);
+   create_thread((uint16_t) counting, 0, 1);
+   create_thread((uint16_t) counting, 0, 1);
+   create_thread((uint16_t) counting, 0, 1);
+   create_thread((uint16_t) counting, 0, 1);
+   create_thread((uint16_t) counting, 0, 1);
+
    os_start();
 
    while(1) {}
 }
 
-void counting(void) {
+__attribute__((naked)) void counting(void) {
    while(1) {
-      print_int(isrCounter);
-      print_string("\r");
-      _delay_ms(100);
-      clear_screen();
+   asm volatile("push r3");
+   asm volatile("pop r3");
+
+      //print_int(isrCounter);
+      //print_string("\r");
+      //_delay_ms(100);
+      //clear_screen();
    }
 }
 
