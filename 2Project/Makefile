@@ -13,6 +13,19 @@ osS: os.c
 program_main: program2.hex
 	avrdude -pm328p -P /dev/tty.usbmodem411 -c arduino -F -u -U flash:w:program2.hex
 
+#Moves all necessary files into a temporary folder for pushing
+prepare:
+	mkdir toPush
+	cp os.c ./toPush/
+	cp os.h ./toPush/
+	cp globals.h ./toPush/
+	cp program2.c ./toPush/
+	cp serial.c ./toPush/
+	cp Makefile ./toPush/
+
+handin:
+	handin jseng 453_program2_3 os.c os.h globals.h program2.c serial.c Makefile
+
 #remove build files
 clean:
 	rm -fr *.elf *.hex *.o
