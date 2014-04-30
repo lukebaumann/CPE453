@@ -22,6 +22,13 @@ void os_init(void) {
    system->systemTime = getSystemTime();
 }
 
+void thread_sleep(uint16_t ticks) {
+   system->threads[system->currentThread].state = THREAD_SLEEPING;
+   system->threads[system->currentThread].sleepingTicksLeft = ticks - 1;
+   
+   switchThreads();
+}
+
 /**
  * Adds a new thread to the system data structure. The new thread allocates
  * space for its stack, and sets its stack bounds, its stack pointer, and
@@ -95,7 +102,10 @@ ISR(TIMER0_COMPA_vect) {
                  "r25", "r26", "r27", "r30", "r31");                        
 
    isrCounter++;
+   switchThreads();
+}
 
+void switchThreads() {
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
    uint8_t currentThreadId = system->currentThreadId;
