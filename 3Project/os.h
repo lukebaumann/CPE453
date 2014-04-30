@@ -90,6 +90,13 @@ struct system_t {
    uint32_t systemTime;
 };
 
+enum STATE {
+   THREAD_RUNNING = 0,
+   THREAD_READY,
+   THREAD_SLEEPING,
+   THREAD_WAITING
+};
+
 struct mutex_t {
    uint8_t ownerId;
    uint8_t lock;
@@ -116,4 +123,16 @@ uint32_t getSystemTime(void);
 uint8_t getNumberOfThreads(void);
 void printSystemInfo(void);
 
+void thread_sleep(uint16_t ticks);
+
+void mutex_init(struct mutex_t* m);
+void mutex_lock(struct mutex_t* m);
+void mutex_unlock(struct mutex_t* m);
+
+void sem_init(struct semaphore_t* s, int8_t value);
+void sem_wait(struct semaphore_t* s);
+void sem_signal(struct semaphore_t* s);
+void sem_signal_swap(struct semaphore_t* s);
+
+void yield();
 #endif
