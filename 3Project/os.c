@@ -102,7 +102,19 @@ ISR(TIMER0_COMPA_vect) {
                  "r25", "r26", "r27", "r30", "r31");                        
 
    isrCounter++;
+   notifySleepingThreads();
    switchThreads();
+}
+
+void notifySleepingThreads() {
+   uint8_t i = 0;
+   for (i = 0; i < MAX_NUMBER_OF_THREAD; i++) {
+      if (system->threads[i].state == THREAD_SLEEPING) {
+         if (--system->threads[i].sleepingTicksLeft) {
+            system->threads[i].state = THREAD_READY;
+         }
+      }  
+   }
 }
 
 void switchThreads() {
