@@ -1,0 +1,7 @@
+a.out
+*.elf
+*.hex
+*.o
+*.s
+*temp*
+*out*
