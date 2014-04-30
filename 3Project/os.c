@@ -22,6 +22,32 @@ void os_init(void) {
    system->systemTime = getSystemTime();
 }
 
+void mutex_init(struct mutex_t* m) {
+   m->ownerId = 0;
+   m->lock = 0;
+   m->startIndex = 0;
+   m->endIndex = 0;
+}
+
+void mutex_lock(struct mutex_t* m) {
+   if (!m->lock) {
+      m->lock = 1;
+   }
+   else {
+      m->waitingThreads[m->endIndex] = system->currentThreadId; 
+      m->endIndex = (m->endIndex + 1) % MAX_NUMBER_OF_THREADS;
+      system->threads[system->currentThreadId] = THREAD_SLEEPING;
+   }
+}
+
+void mutex_unlock(struct mutex_t* m) {
+   m->waitingThreads[m->startIndex] = THREAD_READY;
+}
+
+void sem_init(struct semaphore_t* s, int8_t value) {
+   
+}
+
 /**
  * Adds a new thread to the system data structure. The new thread allocates
  * space for its stack, and sets its stack bounds, its stack pointer, and

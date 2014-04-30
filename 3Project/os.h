@@ -80,6 +80,8 @@ struct thread_t {
    uint8_t *lowestStackAddress;
    uint8_t *highestStackAddress;
    uint8_t *stackPointer;
+   STATE state;
+   uint16_t sleepingTicksLeft;
 };
 
 // This structure holds system information
@@ -98,7 +100,8 @@ enum STATE {
 };
 
 struct mutex_t {
-   uint8_t ownerId;
+   uint8_t ownerId; 
+   uint8_t waitngThreads[MAX_NUMBER_OF_THREADS];
    uint8_t lock;
    uint8_t startIndex;
    uint8_t endIndex;
