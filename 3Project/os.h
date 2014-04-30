@@ -90,6 +90,19 @@ struct system_t {
    uint32_t systemTime;
 };
 
+struct mutex_t {
+   uint8_t ownerId;
+   uint8_t lock;
+   uint8_t startIndex;
+   uint8_t endIndex;
+};
+
+struct semaphore_t {
+   int8_t value;
+   uint8_t waitngThreads[MAX_NUMBER_OF_THREADS];
+   uint8_t startIndex;
+   uint8_t endIndex;
+};
 
 void os_init(void);
 void create_thread(uint16_t address, void *args, uint16_t stackSize);
