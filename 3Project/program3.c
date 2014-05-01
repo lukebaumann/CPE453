@@ -8,7 +8,7 @@
 #include "globals.h"
 #include "os.h"
 
-extern uint32_t isrCounter;
+extern uint32_t oneSecondCounter;
 
 /**
  * Ivokes the operating system.
@@ -21,7 +21,7 @@ void main(void) {
    create_thread((uint16_t) blink, 0, 50);
 
    os_start();
-
+   sei();
    while(1) {}
 }
 

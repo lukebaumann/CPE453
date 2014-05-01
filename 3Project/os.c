@@ -9,7 +9,12 @@
 #include "globals.h"
 
 static volatile struct system_t *system;
-static volatile uint32_t isrCounter = 0;
+static volatile uint32_t tenMillisecondCounter = 0;
+static volatile uint32_t oneSecondCounter = 0;
+
+void yield() {
+   switchThreads();
+}
 
 /**
  * Initializes the operating system. Reserves space from the heap for the
@@ -30,13 +35,16 @@ void thread_sleep(uint16_t ticks) {
 }
 
 void mutex_init(struct mutex_t* m) {
+   cli();
    m->ownerId = 0;
    m->lock = 0;
    m->startIndex = 0;
    m->endIndex = 0;
+   sei();
 }
 
 void mutex_lock(struct mutex_t* m) {
+   cli();
    if (!m->lock) {
       m->ownerId = system->currentThreadId;
       m->lock = 1;
@@ -44,47 +52,67 @@ void mutex_lock(struct mutex_t* m) {
    else {
       m->waitingThreads[m->endIndex] = system->currentThreadId; 
       m->endIndex = (m->endIndex + 1) % MAX_NUMBER_OF_THREADS;
-      system->threads[system->currentThreadId] = THREAD_WAITING;
+      system->threads[system->currentThreadId].state = THREAD_WAITING;
+      sei();
       switchThreads();
+      cli();
       mutex_lock(m);
    }
+   sei();
 }
 
 void mutex_unlock(struct mutex_t* m) {
+   cli();
    if (m->ownerId == system->currentThreadId) {
-      m->waitingThreads[m->startIndex] = THREAD_READY;
+      m->waitingThreads[m->startIndex].state = THREAD_READY;
       m->startIndex = (m->startIndex + 1) % MAX_NUMBER_OF_THREADS;
       m->lock = 0;
    }
+   sei();
 }
 
 void sem_init(struct semaphore_t* s, int8_t value) {
+   cli();
    s->value = value;
    s->startIndex = 0;
    s->endIndex = 0;
+   sei();
 }
 
 void sem_wait(struct semaphore_t* s) {
+   cli();
    if (s->value <= 0) {
       s->waitingThreads[s->endIndex] = system->currentThreadId;
       s->endIndex = (s->endIndex + 1) % MAX_NUMBER_OF_THREADS;
-      system->threads[system->currentThreadId] = THREAD_WAITING;
+      system->threads[system->currentThreadId].state = THREAD_WAITING;
+      sei();
       switchThread();
+      cli();
    }
    else {
       s->value--;
    }
+   sei();
 }
 
 void sem_signal(struct semaphore_t* s) {
+   cli();
    s->value++;
-   s->waitingThreads[s->startIndex] = THREAD_READY;
+   s->waitingThreads[s->startIndex].state = THREAD_READY;
    s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
+   sei();
 }
 
 void sem_signal_swap(struct semaphore_t* s) {
+   cli();
    sem_signal(s);
+   /*might add code in between
+   cli();
+   sei();*/
    switchThread();
+   /*add code after cli()
+   cli();*/
+   sei(); 
 }
 
 /**
@@ -161,16 +189,16 @@ ISR(TIMER0_COMPA_vect) {
    asm volatile ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24", \
                  "r25", "r26", "r27", "r30", "r31");                        
 
-   isrCounter++;
+   tenMillisecondCounter++;
    notifySleepingThreads();
    switchThreads();
 }
 
 void notifySleepingThreads() {
    uint8_t i = 0;
-   for (i = 0; i < MAX_NUMBER_OF_THREAD; i++) {
+   for (i = 0; i < system->numberOfThreads; i++) {
       if (system->threads[i].state == THREAD_SLEEPING) {
-         system->threads[i].sleepingTicksLeft;
+         system->threads[i].sleepingTicksLeft--;
          if (system->threads[i].sleepingTicksLeft == 0) {
             system->threads[i].state = THREAD_READY;
          }
@@ -178,6 +206,7 @@ void notifySleepingThreads() {
    }
 }
 
+//Maybe set sei() at the beginning
 void switchThreads() {
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
@@ -192,6 +221,11 @@ void switchThreads() {
 ISR(TIMER1_COMPA_vect) {
    //This interrupt routine is run once a second
    //The 2 interrupt routines will not interrupt each other
+   oneSecondCounter++;
+    uint8_t i = 0;
+   for (i = 0; i < system->numberOfThreads; i++) {
+      system->threads
+   }
 }
 
 /**
@@ -326,7 +360,7 @@ void os_start(void) {
 uint8_t get_next_thread(void) {
    int i = 0;
    for (i = (system->currentThreadId + 1) % system->numberOfThreads;
-    i != currentThreadId; i = (i + 1) % numberOfThreads) {
+    i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
       if (system->threads[i].state == THREAD_READY) {
          break;
       }
