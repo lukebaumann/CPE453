@@ -45,7 +45,21 @@ void mutex_unlock(struct mutex_t* m) {
 }
 
 void sem_init(struct semaphore_t* s, int8_t value) {
+   s->value = value;
+   s->startIndex = 0;
+   s->endIndex = 0;
+}
+
+void sem_wait(struct semaphore_t* s) {
    
+}
+
+void sem_signal(struct semaphore_t* s) {
+
+}
+
+void sem_signal_swap(struct semaphore_t* s) {
+
 }
 
 /**
