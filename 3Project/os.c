@@ -92,6 +92,8 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
     newThread->stackSize;
    newThread->stackPointer = newThread->highestStackAddress;
    newThread->functionAddress = address;
+   newThread->state = THREAD_RUNNING;
+   newThread->sleepingTicksLeft = 0;
 
    struct regs_context_switch *registers =
     (struct regs_context_switch *) newThread->stackPointer - 1;
@@ -150,7 +152,8 @@ void notifySleepingThreads() {
    uint8_t i = 0;
    for (i = 0; i < MAX_NUMBER_OF_THREAD; i++) {
       if (system->threads[i].state == THREAD_SLEEPING) {
-         if (--system->threads[i].sleepingTicksLeft) {
+         system->threads[i].sleepingTicksLeft;
+         if (system->threads[i].sleepingTicksLeft == 0) {
             system->threads[i].state = THREAD_READY;
          }
       }  
@@ -303,7 +306,13 @@ void os_start(void) {
  * @return The thread following the thread that is currently executing.
  */
 uint8_t get_next_thread(void) {
-   return (system->currentThreadId + 1) % system->numberOfThreads;
+   int i = 0;
+   for (i = (system->currentThreadId + 1) % system->numberOfThreads;
+    i != currentThreadId; i = (i + 1) % numberOfThreads) {
+      if (system->threads[i].state == THREAD_READY) {
+         break;
+      }
+   return i; 
 }
 
 /**
