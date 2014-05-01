@@ -22,6 +22,13 @@ void os_init(void) {
    system->systemTime = getSystemTime();
 }
 
+void thread_sleep(uint16_t ticks) {
+   system->threads[system->currentThread].state = THREAD_SLEEPING;
+   system->threads[system->currentThread].sleepingTicksLeft = ticks - 1;
+   
+   switchThreads();
+}
+
 void mutex_init(struct mutex_t* m) {
    m->ownerId = 0;
    m->lock = 0;
@@ -135,7 +142,22 @@ ISR(TIMER0_COMPA_vect) {
                  "r25", "r26", "r27", "r30", "r31");                        
 
    isrCounter++;
+   notifySleepingThreads();
+   switchThreads();
+}
 
+void notifySleepingThreads() {
+   uint8_t i = 0;
+   for (i = 0; i < MAX_NUMBER_OF_THREAD; i++) {
+      if (system->threads[i].state == THREAD_SLEEPING) {
+         if (--system->threads[i].sleepingTicksLeft) {
+            system->threads[i].state = THREAD_READY;
+         }
+      }  
+   }
+}
+
+void switchThreads() {
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
    uint8_t currentThreadId = system->currentThreadId;
