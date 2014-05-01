@@ -25,7 +25,7 @@ void os_init(void) {
 void thread_sleep(uint16_t ticks) {
    system->threads[system->currentThread].state = THREAD_SLEEPING;
    system->threads[system->currentThread].sleepingTicksLeft = ticks - 1;
-   
+
    switchThreads();
 }
 
@@ -45,6 +45,8 @@ void mutex_lock(struct mutex_t* m) {
       m->waitingThreads[m->endIndex] = system->currentThreadId; 
       m->endIndex = (m->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId] = THREAD_WAITING;
+      switchThreads();
+      mutex_lock(m);
    }
 }
 
@@ -63,23 +65,26 @@ void sem_init(struct semaphore_t* s, int8_t value) {
 }
 
 void sem_wait(struct semaphore_t* s) {
-    s->value--;
-    if (s->value < 0) {
-      s->waitingThreads[s->startIndex] = 
-      s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
-
-    }
+   if (s->value <= 0) {
+      s->waitingThreads[s->endIndex] = system->currentThreadId;
+      s->endIndex = (s->endIndex + 1) % MAX_NUMBER_OF_THREADS;
+      system->threads[system->currentThreadId] = THREAD_WAITING;
+      switchThread();
+   }
+   else {
+      s->value--;
+   }
 }
 
 void sem_signal(struct semaphore_t* s) {
    s->value++;
-   if (s->value <= 0) {
-      
-   }
+   s->waitingThreads[s->startIndex] = THREAD_READY;
+   s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
 }
 
 void sem_signal_swap(struct semaphore_t* s) {
-   
+   sem_signal(s);
+   switchThread();
 }
 
 /**
