@@ -35,12 +35,14 @@ void blink(void) {
    while (1) {
       // Then it turns off the LED and delays
       led_off();
+      __asm__ volatile ("push r4");
       for (i = 0; i < numDelays; i++) {
          _delay_ms(50);
       }
 
       // Then it turns on the LED and delays
       led_on();
+      __asm__ volatile ("pop r4");
       for (i = 0; i < numDelays; i++) {
          _delay_ms(50);
       }
