@@ -138,7 +138,7 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
     newThread->stackSize;
    newThread->stackPointer = newThread->highestStackAddress;
    newThread->functionAddress = address;
-   newThread->state = THREAD_RUNNING;
+   newThread->state = THREAD_READY;
    newThread->sleepingTicksLeft = 0;
 
    struct regs_context_switch *registers =
@@ -208,10 +208,18 @@ void notifySleepingThreads() {
 
 //Maybe set sei() at the beginning
 void switchThreads() {
+   // If the current thread was interrupted and not changed into a waiting
+   // or sleeping state, change its state to THREAD_READY
+   if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
+      system->threads[system->currentThreadId].state = THREAD_READY;
+   }
+
    //Call get_next_thread to get the thread id of the next thread to run
    uint8_t nextThreadId = get_next_thread();
    uint8_t currentThreadId = system->currentThreadId;
    system->currentThreadId = nextThreadId;
+
+   system->threads[nextThreadId].state = THREAD_RUNNING;
 
    //Call context switch here to switch to that next thread
    context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
