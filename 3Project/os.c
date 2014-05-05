@@ -13,7 +13,7 @@ static volatile uint32_t tenMillisecondCounter = 0;
 static volatile uint32_t oneSecondCounter = 0;
 
 void yield() {
-   switchNextThreads();
+   switchNextThread();
 }
 
 /**
@@ -31,7 +31,7 @@ void thread_sleep(uint16_t ticks) {
    system->threads[system->currentThreadId].state = THREAD_SLEEPING;
    system->threads[system->currentThreadId].sleepingTicksLeft = ticks - 1;
 
-   switchNextThreads();
+   switchNextThread();
 }
 
 void mutex_init(struct mutex_t* m) {
@@ -192,7 +192,7 @@ ISR(TIMER0_COMPA_vect) {
 
    tenMillisecondCounter++;
    notifySleepingThreads();
-   switchNextThreads();
+   switchNextThread();
 }
 
 void notifySleepingThreads() {
@@ -214,6 +214,12 @@ void switchNextThread() {
 //Maybe set sei() at the beginning
 void switchThreads(uint8_t nextThreadId) {
    uint8_t currentThreadId = system->currentThreadId;
+   
+   //if the current thread was interrupted and not changed 
+   //into a waiting or sleeping state, change its state to THREAD_READY
+   if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
+      system->threads[system->currentThreadId].state = THREAD_READY;
+   }
    system->currentThreadId = nextThreadId;
 
    system->threads[nextThreadId].state = THREAD_RUNNING;
