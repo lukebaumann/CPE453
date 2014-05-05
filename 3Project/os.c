@@ -13,7 +13,7 @@ static volatile uint32_t tenMillisecondCounter = 0;
 static volatile uint32_t oneSecondCounter = 0;
 
 void yield() {
-   switchThreads();
+   switchNextThreads();
 }
 
 /**
@@ -31,7 +31,7 @@ void thread_sleep(uint16_t ticks) {
    system->threads[system->currentThread].state = THREAD_SLEEPING;
    system->threads[system->currentThread].sleepingTicksLeft = ticks - 1;
 
-   switchThreads();
+   switchNextThreads();
 }
 
 void mutex_init(struct mutex_t* m) {
@@ -56,6 +56,7 @@ void mutex_lock(struct mutex_t* m) {
       sei();
       switchThreads();
       cli();
+      //have question here
       mutex_lock(m);
    }
    sei();
@@ -191,7 +192,7 @@ ISR(TIMER0_COMPA_vect) {
 
    tenMillisecondCounter++;
    notifySleepingThreads();
-   switchThreads();
+   switchNextThreads();
 }
 
 void notifySleepingThreads() {
@@ -206,10 +207,12 @@ void notifySleepingThreads() {
    }
 }
 
+void switchNextThread() {
+   switchThreads(get_next_thread());
+}
+
 //Maybe set sei() at the beginning
-void switchThreads() {
-   //Call get_next_thread to get the thread id of the next thread to run
-   uint8_t nextThreadId = get_next_thread();
+void switchThreads(uint8_t nextThreadId) {
    uint8_t currentThreadId = system->currentThreadId;
    system->currentThreadId = nextThreadId;
 
@@ -224,7 +227,7 @@ ISR(TIMER1_COMPA_vect) {
    oneSecondCounter++;
     uint8_t i = 0;
    for (i = 0; i < system->numberOfThreads; i++) {
-      system->threads
+      system->threads[i] 
    }
 }
 
@@ -343,12 +346,11 @@ __attribute__((naked)) void thread_start(void) {
  * very first invocation of context_switch().
  */
 void os_start(void) {
-   uint16_t mainStackPointer = 0;
 
    start_system_timer();
 
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
-    &mainStackPointer);
+    &system->threads[7].stackPointer);
 }
 
 /**
