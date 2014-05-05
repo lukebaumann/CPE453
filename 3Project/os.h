@@ -118,7 +118,8 @@ void os_init(void);
 void create_thread(uint16_t address, void *args, uint16_t stackSize);
 ISR(TIMER0_COMPA_vect);
 void notifySleepingThreads();
-void switchThreads();
+void switchNextThread();
+void switchThreads(uint8_t nextThreadId);
 void start_system_timer();
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
     uint16_t* oldStackPointer);

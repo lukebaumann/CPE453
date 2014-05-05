@@ -54,7 +54,7 @@ void mutex_lock(struct mutex_t* m) {
       m->endIndex = (m->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
       sei();
-      switchThreads();
+      switchNextThread();
       cli();
       //have question here
       mutex_lock(m);
@@ -64,10 +64,19 @@ void mutex_lock(struct mutex_t* m) {
 
 void mutex_unlock(struct mutex_t* m) {
    cli();
+   uint8_t nextThreadId = 0;
+
    if (m->ownerId == system->currentThreadId) {
       system->threads[m->waitingThreadsIds[m->startIndex]].state = THREAD_READY;
+   
+      nextThreadId = m->waitingThreadsIds[m->startIndex];
+
       m->startIndex = (m->startIndex + 1) % MAX_NUMBER_OF_THREADS;
       m->lock = 0;
+
+      sei();
+      switchThreads(nextThreadId);
+      cli();
    }
    sei();
 }
@@ -87,7 +96,7 @@ void sem_wait(struct semaphore_t* s) {
       s->endIndex = (s->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
       sei();
-      switchThreads();
+      switchNextThread();
       cli();
    }
    else {
@@ -99,20 +108,30 @@ void sem_wait(struct semaphore_t* s) {
 void sem_signal(struct semaphore_t* s) {
    cli();
    s->value++;
-   system->threads[s->waitingThreadsIds[s->startIndex]].state = THREAD_READY;
-   s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
+
+   if (s->startIndex != s->endIndex) {
+      system->threads[s->waitingThreadsIds[s->startIndex]].state = THREAD_READY;
+      s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
+   }
+
    sei();
 }
 
 void sem_signal_swap(struct semaphore_t* s) {
    cli();
-   sem_signal(s);
-   /*might add code in between
-   cli();
-   sei();*/
-   switchThreads();
-   /*add code after cli()
-   cli();*/
+   uint8_t nextThreadId = 0;
+
+   s->value++;
+
+   if (s->startIndex != s->endIndex) {
+      nextThreadId = s->waitingThreadsIds[s->startIndex];
+      system->threads[nextThreadId].state = THREAD_READY;
+      s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
+
+      sei();
+      switchNextThread(nextThreadId);
+      cli();
+   }
    sei(); 
 }
 
@@ -233,9 +252,10 @@ ISR(TIMER1_COMPA_vect) {
    //This interrupt routine is run once a second
    //The 2 interrupt routines will not interrupt each other
    oneSecondCounter++;
-    uint8_t i = 0;
+   uint8_t i = 0;
+   
    for (i = 0; i < system->numberOfThreads; i++) {
-      system->threads[i] 
+      //system->threads[i] 
    }
 }
 
@@ -358,7 +378,7 @@ void os_start(void) {
    start_system_timer();
 
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
-    &system->threads[7].stackPointer);
+    (uint16_t *) (&system->threads[7].stackPointer));
 }
 
 /**
