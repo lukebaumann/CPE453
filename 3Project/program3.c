@@ -10,6 +10,11 @@
 
 extern uint32_t oneSecondCounter;
 
+uint16_t bufferSize = 0;
+uint16_t consumeTime = DEFAULT_CONSUME_TIME;
+uint16_t produceTime = DEFAULT_PRODUCE_TIME;
+
+
 /**
  * Ivokes the operating system.
  */
@@ -23,6 +28,42 @@ void main(void) {
    os_start();
    sei();
    while(1) {}
+}
+
+void producer() {
+   while(1) {
+      thread_sleep(produceTime);
+      if (bufferSize < MAX_BUFFER_SIZE) {
+         bufferSize++;
+      }
+   }
+}
+
+void consumer() {
+   while(1) {
+      thread_sleep(consumeTime);
+      if (bufferSize > 0) {
+         bufferSize--;
+      }
+   }
+}
+
+void display_bounded_buffer() {
+   set_cursor(0, 40);
+   print_string("Producing 1 item per ");
+   print_int(produceTime * 10);
+   print_string(" ms");
+
+   set_cursor(1, 40);
+   print_string("Consuming 1 item per ");
+   print_int(consumeTime * 10);
+   print_string(" ms");
+
+   uint8_t i = 0;
+   for (i = 0; i < bufferSize; i++) {
+      set_cursor(2 + MAX_BUFFER_SIZE - i, 50);
+      print_string("X");
+   }
 }
 
 /**

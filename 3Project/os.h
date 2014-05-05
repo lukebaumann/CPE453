@@ -71,6 +71,9 @@ struct regs_interrupt {
 };
 
 #define MAX_NUMBER_OF_THREADS 8
+#define MAX_BUFFER_SIZE 10
+#define DEFAULT_CONSUME_TIME 100
+#define DEFAULT_PRODUCE_TIME 100
 
 typedef enum STATE {
    THREAD_RUNNING = 0,
