@@ -72,6 +72,13 @@ struct regs_interrupt {
 
 #define MAX_NUMBER_OF_THREADS 8
 
+typedef enum STATE {
+   THREAD_RUNNING = 0,
+   THREAD_READY,
+   THREAD_SLEEPING,
+   THREAD_WAITING
+} STATE;
+
 // This structure holds thread specific information
 struct thread_t {
    uint8_t threadId;
@@ -92,16 +99,9 @@ struct system_t {
    uint32_t systemTime;
 };
 
-enum STATE {
-   THREAD_RUNNING = 0,
-   THREAD_READY,
-   THREAD_SLEEPING,
-   THREAD_WAITING
-};
-
 struct mutex_t {
    uint8_t ownerId; 
-   uint8_t waitngThreads[MAX_NUMBER_OF_THREADS];
+   uint8_t waitingThreadsIds[MAX_NUMBER_OF_THREADS];
    uint8_t lock;
    uint8_t startIndex;
    uint8_t endIndex;
@@ -109,7 +109,7 @@ struct mutex_t {
 
 struct semaphore_t {
    int8_t value;
-   uint8_t waitngThreads[MAX_NUMBER_OF_THREADS];
+   uint8_t waitingThreadsIds[MAX_NUMBER_OF_THREADS];
    uint8_t startIndex;
    uint8_t endIndex;
 };
@@ -117,6 +117,8 @@ struct semaphore_t {
 void os_init(void);
 void create_thread(uint16_t address, void *args, uint16_t stackSize);
 ISR(TIMER0_COMPA_vect);
+void notifySleepingThreads();
+void switchThreads();
 void start_system_timer();
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
     uint16_t* oldStackPointer);

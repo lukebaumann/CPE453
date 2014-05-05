@@ -17,8 +17,8 @@ void main(void) {
    serial_init();
    os_init();
 
-   create_thread((uint16_t) printSystemInfo, 0, 50);
    create_thread((uint16_t) blink, 0, 50);
+   create_thread((uint16_t) printSystemInfo, 0, 50);
 
    os_start();
    sei();
@@ -36,13 +36,13 @@ void blink(void) {
       // Then it turns off the LED and delays
       led_off();
       for (i = 0; i < numDelays; i++) {
-         _delay_ms(50);
+         thread_sleep(5);
       }
 
       // Then it turns on the LED and delays
       led_on();
       for (i = 0; i < numDelays; i++) {
-         _delay_ms(50);
+         thread_sleep(5);
       }
    }
 }

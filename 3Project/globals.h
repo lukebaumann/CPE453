@@ -44,9 +44,6 @@ void testHex8(int8_t tested);
 void testHex16(uint16_t tested);
 void testHex32(uint32_t tested);
 
-// For main
-typedef enum { CONTINUE = 0, FINISH, WAIT } STATE;
-
 void led_on();
 void led_off();
 void blink(void);

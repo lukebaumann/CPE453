@@ -28,8 +28,8 @@ void os_init(void) {
 }
 
 void thread_sleep(uint16_t ticks) {
-   system->threads[system->currentThread].state = THREAD_SLEEPING;
-   system->threads[system->currentThread].sleepingTicksLeft = ticks - 1;
+   system->threads[system->currentThreadId].state = THREAD_SLEEPING;
+   system->threads[system->currentThreadId].sleepingTicksLeft = ticks - 1;
 
    switchNextThreads();
 }
@@ -50,7 +50,7 @@ void mutex_lock(struct mutex_t* m) {
       m->lock = 1;
    }
    else {
-      m->waitingThreads[m->endIndex] = system->currentThreadId; 
+      m->waitingThreadsIds[m->endIndex] = system->currentThreadId; 
       m->endIndex = (m->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
       sei();
@@ -65,7 +65,7 @@ void mutex_lock(struct mutex_t* m) {
 void mutex_unlock(struct mutex_t* m) {
    cli();
    if (m->ownerId == system->currentThreadId) {
-      m->waitingThreads[m->startIndex].state = THREAD_READY;
+      system->threads[m->waitingThreadsIds[m->startIndex]].state = THREAD_READY;
       m->startIndex = (m->startIndex + 1) % MAX_NUMBER_OF_THREADS;
       m->lock = 0;
    }
@@ -83,11 +83,11 @@ void sem_init(struct semaphore_t* s, int8_t value) {
 void sem_wait(struct semaphore_t* s) {
    cli();
    if (s->value <= 0) {
-      s->waitingThreads[s->endIndex] = system->currentThreadId;
+      s->waitingThreadsIds[s->endIndex] = system->currentThreadId;
       s->endIndex = (s->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
       sei();
-      switchThread();
+      switchThreads();
       cli();
    }
    else {
@@ -99,7 +99,7 @@ void sem_wait(struct semaphore_t* s) {
 void sem_signal(struct semaphore_t* s) {
    cli();
    s->value++;
-   s->waitingThreads[s->startIndex].state = THREAD_READY;
+   system->threads[s->waitingThreadsIds[s->startIndex]].state = THREAD_READY;
    s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
    sei();
 }
@@ -110,7 +110,7 @@ void sem_signal_swap(struct semaphore_t* s) {
    /*might add code in between
    cli();
    sei();*/
-   switchThread();
+   switchThreads();
    /*add code after cli()
    cli();*/
    sei(); 
@@ -139,7 +139,7 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
     newThread->stackSize;
    newThread->stackPointer = newThread->highestStackAddress;
    newThread->functionAddress = address;
-   newThread->state = THREAD_RUNNING;
+   newThread->state = THREAD_READY;
    newThread->sleepingTicksLeft = 0;
 
    struct regs_context_switch *registers =
@@ -215,6 +215,8 @@ void switchNextThread() {
 void switchThreads(uint8_t nextThreadId) {
    uint8_t currentThreadId = system->currentThreadId;
    system->currentThreadId = nextThreadId;
+
+   system->threads[nextThreadId].state = THREAD_RUNNING;
 
    //Call context switch here to switch to that next thread
    context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
@@ -366,6 +368,8 @@ uint8_t get_next_thread(void) {
       if (system->threads[i].state == THREAD_READY) {
          break;
       }
+   }
+
    return i; 
 }
 
@@ -375,7 +379,7 @@ uint8_t get_next_thread(void) {
  * @return The system time, in seconds.
  */
 uint32_t getSystemTime(void) {
-   return isrCounter / 100;
+   return oneSecondCounter;
 }
 
 /**
@@ -395,7 +399,7 @@ uint8_t getNumberOfThreads(void) {
  */
 uint32_t getInterruptsPerSecond(void) {
    uint32_t sysTime = getSystemTime();
-   return sysTime ? isrCounter / getSystemTime() : isrCounter;
+   return sysTime ? tenMillisecondCounter / sysTime : tenMillisecondCounter;
 }
 
 /**
