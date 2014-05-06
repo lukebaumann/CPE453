@@ -8,9 +8,9 @@
 #include "os.h"
 #include "globals.h"
 
-static volatile struct system_t *system;
-static volatile uint32_t tenMillisecondCounter = 0;
-static volatile uint32_t oneSecondCounter = 0;
+volatile struct system_t *system;
+volatile uint32_t tenMillisecondCounter = 0;
+volatile uint32_t oneSecondCounter = 0;
 
 void yield() {
    switchNextThread();
@@ -227,11 +227,14 @@ void notifySleepingThreads() {
 }
 
 void switchNextThread() {
+   sei();
    switchThreads(get_next_thread());
+   cli();
 }
 
 //Maybe set sei() at the beginning
 void switchThreads(uint8_t nextThreadId) {
+   sei();
    uint8_t currentThreadId = system->currentThreadId;
    
    //if the current thread was interrupted and not changed 
@@ -246,6 +249,8 @@ void switchThreads(uint8_t nextThreadId) {
    //Call context switch here to switch to that next thread
    context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
     (uint16_t *) &system->threads[currentThreadId].stackPointer);
+
+   cli();
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -443,8 +448,6 @@ uint32_t getInterruptsPerSecond(void) {
  *    stack end (highest possible stack address)
  */
 void printSystemInfo() {
-   clear_screen();
-
    while (1) {
       //_delay_ms(100);
       set_cursor(1, 1);
@@ -467,6 +470,20 @@ void printSystemInfo() {
       print_string("\n\n\r");
 
       //Per-thread information
+
+
+
+      // CHAO: Hello, Ni Hao. No \n\r. Set all of them to be set_cursor()
+      // Set all end of line print_string() to have 3 extra spaces at the end of them.
+      // Add other specs from spec.
+      // Move this function to program3.c
+      // Make system and extern variable in other file
+      // Change color of display_bounded_buffer to Magenta
+      // Test it on your arduino
+      // Add sei() and cli() to switchThreads/switchNextThread
+      // Delete old comments
+      // Add 'a' 'z' for consumer and producer in this function
+      // Add wait and signal into producer and consumer and display_bounded_buffer
       int i = 0;
       for (; i < system->numberOfThreads; i++) {
          set_color(BLACK + i);
