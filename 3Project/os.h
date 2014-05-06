@@ -71,6 +71,9 @@ struct regs_interrupt {
 };
 
 #define MAX_NUMBER_OF_THREADS 8
+#define MAX_BUFFER_SIZE 10
+#define DEFAULT_CONSUME_TIME 100
+#define DEFAULT_PRODUCE_TIME 100
 
 typedef enum STATE {
    THREAD_RUNNING = 0,
@@ -118,7 +121,8 @@ void os_init(void);
 void create_thread(uint16_t address, void *args, uint16_t stackSize);
 ISR(TIMER0_COMPA_vect);
 void notifySleepingThreads();
-void switchThreads();
+void switchNextThread();
+void switchThreads(uint8_t nextThreadId);
 void start_system_timer();
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
     uint16_t* oldStackPointer);

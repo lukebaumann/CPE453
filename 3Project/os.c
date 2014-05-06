@@ -8,9 +8,9 @@
 #include "os.h"
 #include "globals.h"
 
-static volatile struct system_t *system;
-static volatile uint32_t tenMillisecondCounter = 0;
-static volatile uint32_t oneSecondCounter = 0;
+volatile struct system_t *system;
+volatile uint32_t tenMillisecondCounter = 0;
+volatile uint32_t oneSecondCounter = 0;
 
 void yield() {
    switchNextThread();
@@ -29,7 +29,7 @@ void os_init(void) {
 
 void thread_sleep(uint16_t ticks) {
    system->threads[system->currentThreadId].state = THREAD_SLEEPING;
-   system->threads[system->currentThreadId].sleepingTicksLeft = ticks - 1;
+   system->threads[system->currentThreadId].sleepingTicksLeft = ticks;
 
    switchNextThread();
 }
@@ -54,7 +54,7 @@ void mutex_lock(struct mutex_t* m) {
       m->endIndex = (m->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
       sei();
-      switchThreads();
+      switchNextThread();
       cli();
       //have question here
       mutex_lock(m);
@@ -64,10 +64,19 @@ void mutex_lock(struct mutex_t* m) {
 
 void mutex_unlock(struct mutex_t* m) {
    cli();
+   uint8_t nextThreadId = 0;
+
    if (m->ownerId == system->currentThreadId) {
       system->threads[m->waitingThreadsIds[m->startIndex]].state = THREAD_READY;
+   
+      nextThreadId = m->waitingThreadsIds[m->startIndex];
+
       m->startIndex = (m->startIndex + 1) % MAX_NUMBER_OF_THREADS;
       m->lock = 0;
+
+      sei();
+      switchThreads(nextThreadId);
+      cli();
    }
    sei();
 }
@@ -87,7 +96,7 @@ void sem_wait(struct semaphore_t* s) {
       s->endIndex = (s->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
       sei();
-      switchThreads();
+      switchNextThread();
       cli();
    }
    else {
@@ -99,20 +108,30 @@ void sem_wait(struct semaphore_t* s) {
 void sem_signal(struct semaphore_t* s) {
    cli();
    s->value++;
-   system->threads[s->waitingThreadsIds[s->startIndex]].state = THREAD_READY;
-   s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
+
+   if (s->startIndex != s->endIndex) {
+      system->threads[s->waitingThreadsIds[s->startIndex]].state = THREAD_READY;
+      s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
+   }
+
    sei();
 }
 
 void sem_signal_swap(struct semaphore_t* s) {
    cli();
-   sem_signal(s);
-   /*might add code in between
-   cli();
-   sei();*/
-   switchThreads();
-   /*add code after cli()
-   cli();*/
+   uint8_t nextThreadId = 0;
+
+   s->value++;
+
+   if (s->startIndex != s->endIndex) {
+      nextThreadId = s->waitingThreadsIds[s->startIndex];
+      system->threads[nextThreadId].state = THREAD_READY;
+      s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
+
+      sei();
+      switchNextThread(nextThreadId);
+      cli();
+   }
    sei(); 
 }
 
@@ -208,11 +227,14 @@ void notifySleepingThreads() {
 }
 
 void switchNextThread() {
+   sei();
    switchThreads(get_next_thread());
+   cli();
 }
 
 //Maybe set sei() at the beginning
 void switchThreads(uint8_t nextThreadId) {
+   sei();
    uint8_t currentThreadId = system->currentThreadId;
    
    //if the current thread was interrupted and not changed 
@@ -227,15 +249,18 @@ void switchThreads(uint8_t nextThreadId) {
    //Call context switch here to switch to that next thread
    context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
     (uint16_t *) &system->threads[currentThreadId].stackPointer);
+
+   cli();
 }
 
 ISR(TIMER1_COMPA_vect) {
    //This interrupt routine is run once a second
    //The 2 interrupt routines will not interrupt each other
    oneSecondCounter++;
-    uint8_t i = 0;
+   uint8_t i = 0;
+   
    for (i = 0; i < system->numberOfThreads; i++) {
-      system->threads[i] 
+      //system->threads[i] 
    }
 }
 
@@ -358,7 +383,7 @@ void os_start(void) {
    start_system_timer();
 
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
-    &system->threads[7].stackPointer);
+    (uint16_t *) (&system->threads[7].stackPointer));
 }
 
 /**
@@ -406,78 +431,4 @@ uint8_t getNumberOfThreads(void) {
 uint32_t getInterruptsPerSecond(void) {
    uint32_t sysTime = getSystemTime();
    return sysTime ? tenMillisecondCounter / sysTime : tenMillisecondCounter;
-}
-
-/**
- * Prints the following information:
- * 1. System time in seconds
- * 2. Interrupts per second (number of OS interrupts per second)
- * 3. Number of threads in the system
- * 4. Per-thread information
- *    thread id
- *    thread pc (starting pc)
- *    stack usage (number of bytes used by the stack)
- *    total stack size (number of bytes allocated for the stack)
- *    current top of stack (current top of stack address)
- *    stack base (lowest possible stack address)
- *    stack end (highest possible stack address)
- */
-void printSystemInfo() {
-   clear_screen();
-
-   while (1) {
-      //_delay_ms(100);
-      set_cursor(1, 1);
-
-      set_color(MAGENTA);
-
-      //System time
-      print_string("System time: ");
-      print_int32(getSystemTime());
-      print_string("\n\r");
-
-      //Interrupts per second
-      print_string("Interrupts per second: ");
-      print_int32(getInterruptsPerSecond());
-      print_string("\n\r");
-
-      //Number of threads in the system
-      print_string("Thread count: ");
-      print_int(getNumberOfThreads());
-      print_string("\n\n\r");
-
-      //Per-thread information
-      int i = 0;
-      for (; i < system->numberOfThreads; i++) {
-         set_color(BLACK + i);
-         print_string("Thread ");
-         print_int(system->threads[i].threadId);
-         print_string("\n\r");
-
-         print_string("Thread PC: 0x");
-         print_hex(system->threads[i].functionAddress);
-         print_string("\n\r");
-
-         print_string("Stack usage: ");
-         print_int((uint16_t) (system->threads[i].highestStackAddress
-            - system->threads[i].stackPointer));
-         print_string("\n\r");
-
-         print_string("Total stack size: ");
-         print_int(system->threads[i].stackSize);
-         print_string("\n\r");
-
-         print_string("Current top of stack: 0x");
-         print_hex((uint16_t) system->threads[i].stackPointer);
-         print_string("\n\r");
-
-         print_string("Stack base: 0x");
-         print_hex((uint16_t) system->threads[i].highestStackAddress);
-         print_string("\n\r");
-
-         print_string("Stack end: 0x");
-         print_hex((uint16_t) system->threads[i].lowestStackAddress);
-         print_string("\n\n\r");
-      }
-   }
 }
