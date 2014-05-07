@@ -17,6 +17,8 @@ static uint16_t bufferSize = 0;
 static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
 
+// TODO: get rid of test thread and make a main thread
+// TODO: add stats to display_stats
 void test() {
    while(1) {}
 }

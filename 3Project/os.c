@@ -396,14 +396,36 @@ void os_start(void) {
  */
 uint8_t get_next_thread(void) {
    int i = 0;
-   for (i = (system->currentThreadId + 1) % system->numberOfThreads;
-    i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
-      if (system->threads[i].state == THREAD_READY) {
-         break;
+
+   if (system->currentThreadId == MAX_NUMBER_OF_THREADS) {
+      for (i = 0; i < system->numberOfThreads; i++) {
+         if (system->threads[i].state == THREAD_READY) {
+            return i;
+         }
       }
+
+      return MAX_NUMBER_OF_THREADS;
    }
 
-   return i; 
+   else {
+      for (i = (system->currentThreadId + 1) % system->numberOfThreads;
+       i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
+         if (system->threads[i].state == THREAD_READY) {
+            return i;
+         }
+      }
+      
+      // Need to check to make sure that the current thread was not put into
+      // a waiting or sleeping state. It would not have been put into a ready
+      // state yet because that happens in switchThreads()
+      if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
+         return system->currentThreadId;
+      }
+
+      else {
+         return MAX_NUMBER_OF_THREADS;
+      }
+   }
 }
 
 /**

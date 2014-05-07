@@ -70,7 +70,7 @@ struct regs_interrupt {
    uint8_t pcl;
 };
 
-#define MAX_NUMBER_OF_THREADS 8
+#define MAX_NUMBER_OF_THREADS 7
 
 typedef enum STATE {
    THREAD_RUNNING = 0,
@@ -93,7 +93,8 @@ struct thread_t {
 
 // This structure holds system information
 struct system_t {
-   struct thread_t threads[MAX_NUMBER_OF_THREADS];
+   // Enough room for all the threads plus an idle main thread
+   struct thread_t threads[MAX_NUMBER_OF_THREADS + 1];
    uint8_t currentThreadId;
    uint8_t numberOfThreads;
    uint32_t systemTime;
