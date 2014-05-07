@@ -12,7 +12,7 @@ extern volatile struct system_t *system;
 extern volatile uint32_t tenMillisecondCounter;
 extern volatile uint32_t oneSecondCounter;
 
-static struct semaphore_t *bufferSemaphore;
+static struct semaphore_t bufferSemaphore;
 static uint16_t bufferSize = 0;
 static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
@@ -36,7 +36,7 @@ int main(void) {
    create_thread((uint16_t) blink, 0, 50);
    //create_main
 
-   sem_init(bufferSemaphore, 1);
+   sem_init(&bufferSemaphore, 1);
 
    os_start();
    sei();
@@ -47,18 +47,16 @@ int main(void) {
 
 void producer() {
    while(1) {
-      set_cursor(19, 1);
-      print_string("here");
       thread_sleep(produceTime);
 
       if (bufferSize < MAX_BUFFER_SIZE) {
-         set_cursor(20, 1);
-         print_string("here");
-         set_cursor(21, 1);
-         sem_wait(bufferSemaphore);
-         print_string("there");
+         set_cursor(20, 50);
+         print_string("produce wait              ");
+         sem_wait(&bufferSemaphore);
+         set_cursor(20, 50);
+         print_string("             produce ready");
          bufferSize++;
-         sem_signal(bufferSemaphore);
+         sem_signal(&bufferSemaphore);
       }
    }
 }
@@ -68,9 +66,13 @@ void consumer() {
       thread_sleep(consumeTime);
 
       if (bufferSize > 0) {
-         sem_wait(bufferSemaphore);
+         set_cursor(21, 50);
+         print_string("consume wait              ");
+         sem_wait(&bufferSemaphore);
+         set_cursor(21, 50);
+         print_string("             consume ready");
          bufferSize--;
-         sem_signal(bufferSemaphore);
+         sem_signal(&bufferSemaphore);
       }
    }
 }
