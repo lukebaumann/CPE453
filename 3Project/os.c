@@ -28,8 +28,10 @@ void os_init(void) {
 }
 
 void thread_sleep(uint16_t ticks) {
-   system->threads[system->currentThreadId].state = THREAD_SLEEPING;
-   system->threads[system->currentThreadId].sleepingTicksLeft = ticks;
+   if (ticks > 0) {
+      system->threads[system->currentThreadId].state = THREAD_SLEEPING;
+      system->threads[system->currentThreadId].sleepingTicksLeft = ticks;
+   }
 
    switchNextThread();
 }

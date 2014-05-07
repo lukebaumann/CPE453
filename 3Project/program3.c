@@ -38,6 +38,7 @@ int main(void) {
 
    sem_init(&bufferSemaphore, 1);
 
+   clear_screen();
    os_start();
    sei();
    while(1) {}
@@ -114,14 +115,20 @@ void handleKeys() {
       if (key == 'a') {
          produceTime++;
       }
-      if (key == 'z') {
+      else if (key == 'z' && produceTime > 0) {
          produceTime--;
       }
-      if (key == 'k') {
+      else if (key == 'k') {
          consumeTime++;
       }
-      if (key == 'm') {
+      else if (key == 'm' && consumeTime > 0) {
          consumeTime--;
+      }
+      else if (key == 'e') {
+         bufferSize = 0;
+      }
+      else if (key == 'f') {
+         bufferSize = MAX_BUFFER_SIZE;
       }
    }
 }
