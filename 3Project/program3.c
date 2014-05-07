@@ -17,6 +17,10 @@ static uint16_t bufferSize = 0;
 static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
 
+void test() {
+   while(1) {}
+}
+
 /**
  * Ivokes the operating system.
  */
@@ -24,6 +28,7 @@ int main(void) {
    serial_init();
    os_init();
 
+   create_thread((uint16_t) test, 0, 50);
    create_thread((uint16_t) consumer, 0, 50);
    create_thread((uint16_t) producer, 0, 50);
    create_thread((uint16_t) display_stats, 0, 50);
@@ -71,23 +76,54 @@ void consumer() {
 }
 
 void display_bounded_buffer() {
-   set_cursor(1, 40);
-   set_color(MAGENTA);
-   print_string("Producing 1 item per ");
-   print_int(produceTime * 10);
-   print_string(" ms");
+   while (1) {
+      handleKeys();
 
-   set_cursor(2, 40);
-   print_string("Consuming 1 item per ");
-   print_int(consumeTime * 10);
-   print_string(" ms");
+      set_cursor(1, 40);
+      set_color(MAGENTA);
+      print_string("Producing 1 item per ");
+      print_int(produceTime * 10);
+      print_string(" ms   ");
 
-   uint8_t i = 0;
-   for (i = 0; i < bufferSize; i++) {
-      set_cursor(3 + MAX_BUFFER_SIZE - i, 50);
-      print_string("X");
+      set_cursor(2, 40);
+      print_string("Consuming 1 item per ");
+      print_int(consumeTime * 10);
+      print_string(" ms   ");
+
+      uint8_t i = 0;
+      for (i = 0; i < MAX_BUFFER_SIZE; i++) {
+         set_cursor(3 + MAX_BUFFER_SIZE - i, 50);
+         if (i < bufferSize) {
+            print_string("X");
+         }
+         else {
+            print_string(" ");
+         }
+      }
+
+      thread_sleep(5);
    }
 }
+
+void handleKeys() {
+   uint8_t key = read_byte();
+
+   if (key != 255) {
+      if (key == 'a') {
+         produceTime++;
+      }
+      if (key == 'z') {
+         produceTime--;
+      }
+      if (key == 'k') {
+         consumeTime++;
+      }
+      if (key == 'm') {
+         consumeTime--;
+      }
+   }
+}
+
 
 /**
  * Prints the following information:
@@ -105,7 +141,7 @@ void display_bounded_buffer() {
  */
 void display_stats() {
    while (1) {
-      //_delay_ms(100);
+      thread_sleep(5);
       set_cursor(1, 1);
 
       set_color(MAGENTA);
@@ -144,22 +180,6 @@ void display_stats() {
       // Add 'a' 'z' for consumer and producer in this function
       // Add wait and signal into producer and consumer and display_bounded_buffer
       
-      uint8_t key = read_byte();
-
-      if (key != 255) {
-         if (key == 'a') {
-            produceTime++;
-         }
-         if (key == 'z') {
-            produceTime--;
-         }
-         if (key == 'k') {
-            consumeTime++;
-         }
-         if (key == 'm') {
-            consumeTime--;
-         }
-      }
 
       int i = 0;
       for (; i < system->numberOfThreads; i++) {
@@ -167,38 +187,38 @@ void display_stats() {
          print_string("Thread ");
          print_int(system->threads[i].threadId);
          print_string("   ");
-         set_cursor(5, 1);
+         set_cursor(5 + i * STAT_DISPLAY_HEIGHT, 1);
 
          print_string("Thread PC: 0x");
          print_hex(system->threads[i].functionAddress);
          print_string("   ");
-         set_cursor(6, 1);
+         set_cursor(6 + i * STAT_DISPLAY_HEIGHT, 1);
 
          print_string("Stack usage: ");
          print_int((uint16_t) (system->threads[i].highestStackAddress -
           system->threads[i].stackPointer));
          print_string("   ");
-         set_cursor(7, 1);
+         set_cursor(7 + i * STAT_DISPLAY_HEIGHT, 1);
 
          print_string("Total stack size: ");
          print_int(system->threads[i].stackSize);
          print_string("   ");
-         set_cursor(8, 1);
+         set_cursor(8 + i * STAT_DISPLAY_HEIGHT, 1);
 
          print_string("Current top of stack: 0x");
          print_hex((uint16_t) system->threads[i].stackPointer);
          print_string("   ");
-         set_cursor(9, 1);
+         set_cursor(9 + i * STAT_DISPLAY_HEIGHT, 1);
 
          print_string("Stack base: 0x");
          print_hex((uint16_t) system->threads[i].highestStackAddress);
          print_string("   ");
-         set_cursor(10, 1);
+         set_cursor(10 + i * STAT_DISPLAY_HEIGHT, 1);
 
          print_string("Stack end: 0x");
          print_hex((uint16_t) system->threads[i].lowestStackAddress);
          print_string("   ");
-         set_cursor(11, 1);
+         set_cursor(11 + i * STAT_DISPLAY_HEIGHT, 1);
       }
    }
 }

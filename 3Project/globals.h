@@ -47,12 +47,14 @@ void testHex32(uint32_t tested);
 #define MAX_BUFFER_SIZE 10
 #define DEFAULT_CONSUME_TIME 100
 #define DEFAULT_PRODUCE_TIME 100
+#define STAT_DISPLAY_HEIGHT 10
 
 void led_on();
 void led_off();
 void blink();
 void display_stats();
 void display_bounded_buffer();
+void handleKeys();
 void consumer();
 void producer();
 
