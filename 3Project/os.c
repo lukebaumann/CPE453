@@ -12,6 +12,10 @@ volatile struct system_t *system;
 volatile uint32_t tenMillisecondCounter = 0;
 volatile uint32_t oneSecondCounter = 0;
 
+void getMainLowAddress() {
+   system->threads[MAX_NUMBER_OF_THREADS].lowestStackAddress = sbrk(0);
+}
+
 void yield() {
    switchNextThread();
 }
@@ -381,11 +385,25 @@ __attribute__((naked)) void thread_start(void) {
  * very first invocation of context_switch().
  */
 void os_start(void) {
+   createMainThread();
 
    start_system_timer();
-
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
-    (uint16_t *) (&system->threads[7].stackPointer));
+    (uint16_t *) (&system->threads[MAX_NUMBER_OF_THREADS].stackPointer));
+}
+
+
+void createMainThread() {
+   system->threads[MAX_NUMBER_OF_THREADS]
+   volatile struct thread_t *mainThread =
+    &system->threads[MAX_NUMBER_OF_THREADS];
+
+   mainThread->highestStackAddress = sbrk(0);
+   mainThread->stackSize = mainThread->highestStackAddress - 
+    mainThread->lowestStackAddress;
+   mainThread->functionAddress = main;
+   mainThread->state = THREAD_RUNNING;
+   mainThread->sleepingTicksLeft = 0;
 }
 
 /**

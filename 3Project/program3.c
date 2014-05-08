@@ -12,6 +12,8 @@ extern volatile struct system_t *system;
 extern volatile uint32_t tenMillisecondCounter;
 extern volatile uint32_t oneSecondCounter;
 
+uint16_t lowStackAddress = 0;
+
 static struct semaphore_t bufferSemaphore;
 static uint16_t bufferSize = 0;
 static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
@@ -27,6 +29,8 @@ void test() {
  * Ivokes the operating system.
  */
 int main(void) {
+   getMainLowStackAddress();
+
    serial_init();
    os_init();
 
@@ -175,63 +179,54 @@ void display_stats() {
       print_string("   ");
       set_cursor(4, 1);
 
-      //Per-thread information
-
-
-
-      // CHAO: Hello, Ni Hao. No \n\r. Set all of them to be set_cursor()
-      // Set all end of line print_string() to have 3 extra spaces at the end of them.
-      // Add other specs from spec.
-      // Move this function to program3.c
-      // Make system and extern variable in other file
-      // Change color of display_bounded_buffer to Magenta
-      // Test it on your arduino
-      // Add sei() and cli() to switchThreads/switchNextThread
       // Delete old comments
-      // Add 'a' 'z' for consumer and producer in this function
-      // Add wait and signal into producer and consumer and display_bounded_buffer
-      
 
       int i = 0;
       for (; i < system->numberOfThreads; i++) {
-         set_color(BLACK + i);
-         print_string("Thread ");
-         print_int(system->threads[i].threadId);
-         print_string("   ");
-         set_cursor(5 + i * STAT_DISPLAY_HEIGHT, 1);
-
-         print_string("Thread PC: 0x");
-         print_hex(system->threads[i].functionAddress);
-         print_string("   ");
-         set_cursor(6 + i * STAT_DISPLAY_HEIGHT, 1);
-
-         print_string("Stack usage: ");
-         print_int((uint16_t) (system->threads[i].highestStackAddress -
-          system->threads[i].stackPointer));
-         print_string("   ");
-         set_cursor(7 + i * STAT_DISPLAY_HEIGHT, 1);
-
-         print_string("Total stack size: ");
-         print_int(system->threads[i].stackSize);
-         print_string("   ");
-         set_cursor(8 + i * STAT_DISPLAY_HEIGHT, 1);
-
-         print_string("Current top of stack: 0x");
-         print_hex((uint16_t) system->threads[i].stackPointer);
-         print_string("   ");
-         set_cursor(9 + i * STAT_DISPLAY_HEIGHT, 1);
-
-         print_string("Stack base: 0x");
-         print_hex((uint16_t) system->threads[i].highestStackAddress);
-         print_string("   ");
-         set_cursor(10 + i * STAT_DISPLAY_HEIGHT, 1);
-
-         print_string("Stack end: 0x");
-         print_hex((uint16_t) system->threads[i].lowestStackAddress);
-         print_string("   ");
-         set_cursor(11 + i * STAT_DISPLAY_HEIGHT, 1);
+         printThreadStats(i, i);
       }
+
+      printThreadStats(MAX_NUMBER_OF_THREADS, i);
    }
+}
+
+void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
+   set_color(BLACK + threadIndex);
+   print_string("Thread ");
+   print_int(system->threads[threadIndex].threadId);
+   print_string("   ");
+   set_cursor(5 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Thread PC: 0x");
+   print_hex(system->threads[threadIndex].functionAddress);
+   print_string("   ");
+   set_cursor(6 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Stack usage: ");
+   print_int((uint16_t) (system->threads[threadIndex].highestStackAddress -
+    system->threads[threadIndex].stackPointer));
+   print_string("   ");
+   set_cursor(7 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Total stack size: ");
+   print_int(system->threads[threadIndex].stackSize);
+   print_string("   ");
+   set_cursor(8 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Current top of stack: 0x");
+   print_hex((uint16_t) system->threads[threadIndex].stackPointer);
+   print_string("   ");
+   set_cursor(9 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Stack base: 0x");
+   print_hex((uint16_t) system->threads[threadIndex].highestStackAddress);
+   print_string("   ");
+   set_cursor(10 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Stack end: 0x");
+   print_hex((uint16_t) system->threads[threadIndex].lowestStackAddress);
+   print_string("   ");
+   set_cursor(11 + threadCount * STAT_DISPLAY_HEIGHT, 1);
 }
 
 /**
