@@ -403,7 +403,7 @@ __attribute__((naked)) void thread_start(void) {
  * very first invocation of context_switch().
  */
 void os_start(void) {
-   createMainThread();
+   //createMainThread();
 
    start_system_timer();
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
@@ -452,6 +452,7 @@ __attribute__((naked)) void getStackPointer(uint8_t **stackPointer) {
 uint8_t get_next_thread(void) {
    int i = 0;
 
+   /*
    if (system->currentThreadId == MAX_NUMBER_OF_THREADS) {
       for (i = 0; i < system->numberOfThreads; i++) {
          if (system->threads[i].state == THREAD_READY) {
@@ -462,7 +463,7 @@ uint8_t get_next_thread(void) {
       return MAX_NUMBER_OF_THREADS;
    }
 
-   else {
+   else {*/
       for (i = (system->currentThreadId + 1) % system->numberOfThreads;
        i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
          if (system->threads[i].state == THREAD_READY) {
@@ -473,14 +474,13 @@ uint8_t get_next_thread(void) {
       // Need to check to make sure that the current thread was not put into
       // a waiting or sleeping state. It would not have been put into a ready
       // state yet because that happens in switchThreads()
-      if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
+      //if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
          return system->currentThreadId;
-      }
-
+      /*}
       else {
          return MAX_NUMBER_OF_THREADS;
       }
-   }
+   }*/
 }
 
 /**

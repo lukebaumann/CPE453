@@ -15,7 +15,7 @@ extern volatile uint32_t oneSecondCounter;
 uint16_t lowStackAddress = 0;
 
 static struct semaphore_t bufferSemaphore;
-static struct mutex_t bufferMutex;
+//static struct mutex_t bufferMutex;
 static uint16_t bufferSize = 0;
 static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
@@ -50,7 +50,7 @@ void producer() {
          set_cursor(20, 50);
          print_string("produce wait              ");
 
-         mutex_lock(&bufferMutex);
+         //mutex_lock(&bufferMutex);
          sem_wait(&bufferSemaphore);
 
          set_cursor(20, 50);
@@ -58,7 +58,7 @@ void producer() {
          bufferSize++;
 
          sem_signal(&bufferSemaphore);
-         mutex_unlock(&bufferMutex);
+         //mutex_unlock(&bufferMutex);
       }
    }
 }
@@ -71,7 +71,7 @@ void consumer() {
          set_cursor(21, 50);
          print_string("consume wait              ");
 
-         mutex_lock(&bufferMutex);
+         //mutex_lock(&bufferMutex);
          sem_wait(&bufferSemaphore);
 
          set_cursor(21, 50);
@@ -79,7 +79,7 @@ void consumer() {
          bufferSize--;
 
          sem_signal(&bufferSemaphore);
-         mutex_unlock(&bufferMutex);
+         //mutex_unlock(&bufferMutex);
       }
    }
 }
