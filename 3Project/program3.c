@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "os.h"
 
+<<<<<<< HEAD
 extern uint32_t oneSecondCounter;
 extern struct system_t *system;
 
@@ -18,17 +19,48 @@ uint16_t bufferSize = 0;
 uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 uint16_t produceTime = DEFAULT_PRODUCE_TIME;
 
+=======
+extern volatile struct system_t *system;
+extern volatile uint32_t tenMillisecondCounter;
+extern volatile uint32_t oneSecondCounter;
+
+uint16_t lowStackAddress = 0;
+
+static struct semaphore_t bufferSemaphore;
+static uint16_t bufferSize = 0;
+static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
+static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
+
+// TODO: get rid of test thread and make a main thread
+// TODO: add stats to display_stats
+void test() {
+   while(1) {}
+}
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
 /**
  * Ivokes the operating system.
  */
 int main(void) {
+<<<<<<< HEAD
+=======
+   getMainLowStackAddress();
+
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
    serial_init();
    os_init();
 
+   create_thread((uint16_t) test, 0, 50);
+   create_thread((uint16_t) consumer, 0, 50);
+   create_thread((uint16_t) producer, 0, 50);
+   create_thread((uint16_t) display_stats, 0, 50);
+   create_thread((uint16_t) display_bounded_buffer, 0, 50);
    create_thread((uint16_t) blink, 0, 50);
-   create_thread((uint16_t) printSystemInfo, 0, 50);
+   //create_main
 
+   sem_init(&bufferSemaphore, 1);
+
+   clear_screen();
    os_start();
    sei();
    while(1) {}
@@ -36,6 +68,7 @@ int main(void) {
    return 0;
 }
 
+<<<<<<< HEAD
 //global variables for producer and consumer
 struct semaphore_t *full;
 struct semaphore_t *empty;
@@ -74,10 +107,25 @@ void producer(int item) {
 	  //might not need it since add a counter
       if (bufferSize < MAX_BUFFER_SIZE) {
          bufferSize++;
+=======
+void producer() {
+   while(1) {
+      thread_sleep(produceTime);
+
+      if (bufferSize < MAX_BUFFER_SIZE) {
+         set_cursor(20, 50);
+         print_string("produce wait              ");
+         sem_wait(&bufferSemaphore);
+         set_cursor(20, 50);
+         print_string("             produce ready");
+         bufferSize++;
+         sem_signal(&bufferSemaphore);
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
       }
    }
 }
 
+<<<<<<< HEAD
 //remove the item from the buffer
 int remove(int item) {
    if(buffCounter > 0) {
@@ -101,11 +149,26 @@ void consumer(int item) {
 	  //might not need it since add a counter
 	  if (bufferSize > 0) {
          bufferSize--;
+=======
+void consumer() {
+   while(1) {
+      thread_sleep(consumeTime);
+
+      if (bufferSize > 0) {
+         set_cursor(21, 50);
+         print_string("consume wait              ");
+         sem_wait(&bufferSemaphore);
+         set_cursor(21, 50);
+         print_string("             consume ready");
+         bufferSize--;
+         sem_signal(&bufferSemaphore);
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
       }
    }
 }
 
 void display_bounded_buffer() {
+<<<<<<< HEAD
    set_cursor(0, 40);
    set_color(MAGENTA);
    print_string("Producing 1 item per ");
@@ -124,6 +187,63 @@ void display_bounded_buffer() {
    }
 }
 
+=======
+   while (1) {
+      handleKeys();
+
+      set_cursor(1, 40);
+      set_color(MAGENTA);
+      print_string("Producing 1 item per ");
+      print_int(produceTime * 10);
+      print_string(" ms   ");
+
+      set_cursor(2, 40);
+      print_string("Consuming 1 item per ");
+      print_int(consumeTime * 10);
+      print_string(" ms   ");
+
+      uint8_t i = 0;
+      for (i = 0; i < MAX_BUFFER_SIZE; i++) {
+         set_cursor(3 + MAX_BUFFER_SIZE - i, 50);
+         if (i < bufferSize) {
+            print_string("X");
+         }
+         else {
+            print_string(" ");
+         }
+      }
+
+      thread_sleep(5);
+   }
+}
+
+void handleKeys() {
+   uint8_t key = read_byte();
+
+   if (key != 255) {
+      if (key == 'a') {
+         produceTime++;
+      }
+      else if (key == 'z' && produceTime > 0) {
+         produceTime--;
+      }
+      else if (key == 'k') {
+         consumeTime++;
+      }
+      else if (key == 'm' && consumeTime > 0) {
+         consumeTime--;
+      }
+      else if (key == 'e') {
+         bufferSize = 0;
+      }
+      else if (key == 'f') {
+         bufferSize = MAX_BUFFER_SIZE;
+      }
+   }
+}
+
+
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 /**
  * Prints the following information:
  * 1. System time in seconds
@@ -138,9 +258,15 @@ void display_bounded_buffer() {
  *    stack base (lowest possible stack address)
  *    stack end (highest possible stack address)
  */
+<<<<<<< HEAD
 void printSystemInfo() {
    while (1) {
       //_delay_ms(100);
+=======
+void display_stats() {
+   while (1) {
+      thread_sleep(5);
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
       set_cursor(1, 1);
 
       set_color(MAGENTA);
@@ -155,12 +281,17 @@ void printSystemInfo() {
       print_string("Interrupts per second: ");
       print_int32(getInterruptsPerSecond());
       print_string("   ");
+<<<<<<< HEAD
 	  set_cursor(3, 1);
+=======
+      set_cursor(3, 1);
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
       //Number of threads in the system
       print_string("Thread count: ");
       print_int(getNumberOfThreads());
       print_string("   ");
+<<<<<<< HEAD
 	  set_cursor(4, 1);
 
       //Per-thread information
@@ -234,27 +365,73 @@ void printSystemInfo() {
 	     set_cursor(11, 1);
       }
    }
+=======
+      set_cursor(4, 1);
+
+      // Delete old comments
+
+      int i = 0;
+      for (; i < system->numberOfThreads; i++) {
+         printThreadStats(i, i);
+      }
+
+      printThreadStats(MAX_NUMBER_OF_THREADS, i);
+   }
+}
+
+void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
+   set_color(BLACK + threadIndex);
+   print_string("Thread ");
+   print_int(system->threads[threadIndex].threadId);
+   print_string("   ");
+   set_cursor(5 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Thread PC: 0x");
+   print_hex(system->threads[threadIndex].functionAddress);
+   print_string("   ");
+   set_cursor(6 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Stack usage: ");
+   print_int((uint16_t) (system->threads[threadIndex].highestStackAddress -
+    system->threads[threadIndex].stackPointer));
+   print_string("   ");
+   set_cursor(7 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Total stack size: ");
+   print_int(system->threads[threadIndex].stackSize);
+   print_string("   ");
+   set_cursor(8 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Current top of stack: 0x");
+   print_hex((uint16_t) system->threads[threadIndex].stackPointer);
+   print_string("   ");
+   set_cursor(9 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Stack base: 0x");
+   print_hex((uint16_t) system->threads[threadIndex].highestStackAddress);
+   print_string("   ");
+   set_cursor(10 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Stack end: 0x");
+   print_hex((uint16_t) system->threads[threadIndex].lowestStackAddress);
+   print_string("   ");
+   set_cursor(11 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 }
 
 /**
  * Flashes the LED on and then off with a frequency of 1 second.
  */
 void blink(void) {
-   volatile uint8_t numDelays = 5;
-   volatile uint8_t i = 0;
-
    while (1) {
-      // Then it turns off the LED and delays
-      led_off();
-      for (i = 0; i < numDelays; i++) {
-         thread_sleep(5);
+      if (bufferSize < MAX_BUFFER_SIZE && produceTime > 0) {
+         led_on();
+      }
+      else {
+         led_off();
       }
 
-      // Then it turns on the LED and delays
-      led_on();
-      for (i = 0; i < numDelays; i++) {
-         thread_sleep(5);
-      }
+      yield();
    }
 }
 

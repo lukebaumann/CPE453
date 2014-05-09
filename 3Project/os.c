@@ -11,6 +11,13 @@
 volatile struct system_t *system;
 volatile uint32_t tenMillisecondCounter = 0;
 volatile uint32_t oneSecondCounter = 0;
+<<<<<<< HEAD
+=======
+
+void getMainLowAddress() {
+   system->threads[MAX_NUMBER_OF_THREADS].lowestStackAddress = sbrk(0);
+}
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
 void yield() {
    switchNextThread();
@@ -28,8 +35,15 @@ void os_init(void) {
 }
 
 void thread_sleep(uint16_t ticks) {
+<<<<<<< HEAD
    system->threads[system->currentThreadId].state = THREAD_SLEEPING;
    system->threads[system->currentThreadId].sleepingTicksLeft = ticks;
+=======
+   if (ticks > 0) {
+      system->threads[system->currentThreadId].state = THREAD_SLEEPING;
+      system->threads[system->currentThreadId].sleepingTicksLeft = ticks;
+   }
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
    switchNextThread();
 }
@@ -379,11 +393,29 @@ __attribute__((naked)) void thread_start(void) {
  * very first invocation of context_switch().
  */
 void os_start(void) {
+   createMainThread();
 
    start_system_timer();
-
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
+<<<<<<< HEAD
     (uint16_t *) (&system->threads[7].stackPointer));
+=======
+    (uint16_t *) (&system->threads[MAX_NUMBER_OF_THREADS].stackPointer));
+}
+
+
+void createMainThread() {
+   system->threads[MAX_NUMBER_OF_THREADS]
+   volatile struct thread_t *mainThread =
+    &system->threads[MAX_NUMBER_OF_THREADS];
+
+   mainThread->highestStackAddress = sbrk(0);
+   mainThread->stackSize = mainThread->highestStackAddress - 
+    mainThread->lowestStackAddress;
+   mainThread->functionAddress = main;
+   mainThread->state = THREAD_RUNNING;
+   mainThread->sleepingTicksLeft = 0;
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 }
 
 /**
@@ -394,14 +426,36 @@ void os_start(void) {
  */
 uint8_t get_next_thread(void) {
    int i = 0;
-   for (i = (system->currentThreadId + 1) % system->numberOfThreads;
-    i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
-      if (system->threads[i].state == THREAD_READY) {
-         break;
+
+   if (system->currentThreadId == MAX_NUMBER_OF_THREADS) {
+      for (i = 0; i < system->numberOfThreads; i++) {
+         if (system->threads[i].state == THREAD_READY) {
+            return i;
+         }
       }
+
+      return MAX_NUMBER_OF_THREADS;
    }
 
-   return i; 
+   else {
+      for (i = (system->currentThreadId + 1) % system->numberOfThreads;
+       i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
+         if (system->threads[i].state == THREAD_READY) {
+            return i;
+         }
+      }
+      
+      // Need to check to make sure that the current thread was not put into
+      // a waiting or sleeping state. It would not have been put into a ready
+      // state yet because that happens in switchThreads()
+      if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
+         return system->currentThreadId;
+      }
+
+      else {
+         return MAX_NUMBER_OF_THREADS;
+      }
+   }
 }
 
 /**
@@ -431,4 +485,8 @@ uint8_t getNumberOfThreads(void) {
 uint32_t getInterruptsPerSecond(void) {
    uint32_t sysTime = getSystemTime();
    return sysTime ? tenMillisecondCounter / sysTime : tenMillisecondCounter;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7

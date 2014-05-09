@@ -10,7 +10,7 @@ osS: os.c
 #Flash the Arduino
 #Be sure to change the device (the argument after -P) to match the device on your computer
 #On Windows, change the argument after -P to appropriate COM port
-program_main: program3.hex
+upload: program3.hex
 	avrdude -pm328p -P /dev/tty.usbmodem411 -c arduino -F -u -U flash:w:program3.hex
 
 #Moves all necessary files into a temporary folder for pushing
