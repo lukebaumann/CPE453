@@ -90,7 +90,6 @@ struct thread_t {
    STATE state;
    uint16_t runsCurrentSecond;
    uint16_t runsLastSecond;
-   uint16_t interruptedPC;
    uint16_t sleepingTicksLeft;
 };
 

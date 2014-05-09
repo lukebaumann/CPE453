@@ -20,6 +20,10 @@ static uint16_t bufferSize = 0;
 static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
 
+void test() {
+   while(1) {}
+}
+
 /**
  * Ivokes the operating system.
  */
@@ -27,6 +31,7 @@ void main() {
    serial_init();
    os_init();
 
+   //create_thread((uint16_t) test, 0, 50);
    create_thread((uint16_t) consumer, 0, 50);
    create_thread((uint16_t) producer, 0, 50);
    create_thread((uint16_t) display_stats, 0, 50);
@@ -39,6 +44,7 @@ void main() {
    clear_screen();
    os_start();
    sei();
+
    while(1) {}
 }
 

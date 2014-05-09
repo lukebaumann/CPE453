@@ -55,11 +55,11 @@ void mutex_lock(struct mutex_t* m) {
       m->waitingThreadsIds[m->endIndex] = system->currentThreadId; 
       m->endIndex = (m->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
-      sei();
+
       switchNextThread();
-      cli();
-      //have question here
-      mutex_lock(m);
+
+      m->ownerId = system->currentThreadId;
+      m->lock = 1;
    }
    sei();
 }
@@ -76,9 +76,7 @@ void mutex_unlock(struct mutex_t* m) {
       m->startIndex = (m->startIndex + 1) % MAX_NUMBER_OF_THREADS;
       m->lock = 0;
 
-      sei();
       switchThreads(nextThreadId);
-      cli();
    }
    sei();
 }
@@ -97,9 +95,8 @@ void sem_wait(struct semaphore_t* s) {
       s->waitingThreadsIds[s->endIndex] = system->currentThreadId;
       s->endIndex = (s->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
-      sei();
+
       switchNextThread();
-      cli();
    }
    else {
       s->value--;
@@ -130,9 +127,7 @@ void sem_signal_swap(struct semaphore_t* s) {
       system->threads[nextThreadId].state = THREAD_READY;
       s->startIndex = (s->startIndex + 1) % MAX_NUMBER_OF_THREADS;
 
-      sei();
       switchNextThread(nextThreadId);
-      cli();
    }
    sei(); 
 }
@@ -159,12 +154,12 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    newThread->highestStackAddress = newThread->lowestStackAddress +
     newThread->stackSize;
    newThread->stackPointer = newThread->highestStackAddress;
+
    newThread->functionAddress = address;
    newThread->state = THREAD_READY;
    newThread->sleepingTicksLeft = 0;
    newThread->runsCurrentSecond = 0; 
    newThread->runsLastSecond = 0;
-   //newThread->interruptedPC = address;
 
    struct regs_context_switch *registers =
     (struct regs_context_switch *) newThread->stackPointer - 1;
@@ -237,9 +232,9 @@ void switchNextThread() {
    cli();
 }
 
-//Maybe set sei() at the beginning
 void switchThreads(uint8_t nextThreadId) {
    sei();
+
    uint8_t currentThreadId = system->currentThreadId;
    
    //if the current thread was interrupted and not changed 
@@ -248,7 +243,6 @@ void switchThreads(uint8_t nextThreadId) {
       system->threads[system->currentThreadId].state = THREAD_READY;
    }
 
-   //system->threads[currentThreadId].interruptedPC = getProgramCounter();
    system->threads[nextThreadId].runsCurrentSecond++;
    system->threads[nextThreadId].state = THREAD_RUNNING;
    
@@ -260,21 +254,6 @@ void switchThreads(uint8_t nextThreadId) {
 
    cli();
 }
-/*
-uint16_t getProgramCounter() {
-   uint8_t *stackPointer = 0;
-   uint16_t programCounter = 0;
-
-   getStackPointer(&stackPointer);
-   
-   //4 calls deep 4 pc on the stack, 1 for getProgramCounter, 1 for switchThreads, 
-   //1 for switchNextThread, 1 for ISR. Then there are the registers that are 
-   //automatically pushed by ISR.
-   programCounter = *(uint16_t *) (stackPointer + sizeof(uint16_t) * 4 + 
-    sizeof(struct regs_interrupt));
-   
-   return programCounter;
-}*/
 
 ISR(TIMER1_COMPA_vect) {
    //This interrupt routine is run once a second
@@ -403,23 +382,22 @@ __attribute__((naked)) void thread_start(void) {
  * very first invocation of context_switch().
  */
 void os_start(void) {
-   //createMainThread();
+   createMainThread();
 
    start_system_timer();
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
     (uint16_t *) (&system->threads[MAX_NUMBER_OF_THREADS].stackPointer));
 }
 
-
 void createMainThread() {
    volatile struct thread_t *mainThread = &system->threads[MAX_NUMBER_OF_THREADS];
-   
+ 
    /*mainThread->highestStackAddress = (uint8_t *) 0x8FF;
    getStackPointer((uint8_t **) &mainThread->lowestStackAddress);
    mainThread->stackSize = mainThread->highestStackAddress - mainThread->lowestStackAddress;
    mainThread->functionAddress = (uint16_t) main;
-   mainThread->interruptedPC = (uint16_t) context_switch;
    */
+
    mainThread->state = THREAD_RUNNING;
    mainThread->sleepingTicksLeft = 0;
    
@@ -440,8 +418,6 @@ __attribute__((naked)) void getStackPointer(uint8_t **stackPointer) {
    asm volatile("st z+, r18");
    asm volatile("st z, r19");
 }
- 
-
 
 /**
  * Returns the thread following the currently-executing thread in the system's
@@ -452,7 +428,6 @@ __attribute__((naked)) void getStackPointer(uint8_t **stackPointer) {
 uint8_t get_next_thread(void) {
    int i = 0;
 
-   /*
    if (system->currentThreadId == MAX_NUMBER_OF_THREADS) {
       for (i = 0; i < system->numberOfThreads; i++) {
          if (system->threads[i].state == THREAD_READY) {
@@ -463,7 +438,7 @@ uint8_t get_next_thread(void) {
       return MAX_NUMBER_OF_THREADS;
    }
 
-   else {*/
+   else {
       for (i = (system->currentThreadId + 1) % system->numberOfThreads;
        i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
          if (system->threads[i].state == THREAD_READY) {
@@ -474,13 +449,13 @@ uint8_t get_next_thread(void) {
       // Need to check to make sure that the current thread was not put into
       // a waiting or sleeping state. It would not have been put into a ready
       // state yet because that happens in switchThreads()
-      //if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
+      if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
          return system->currentThreadId;
-      /*}
+      }
       else {
          return MAX_NUMBER_OF_THREADS;
       }
-   }*/
+   }
 }
 
 /**
