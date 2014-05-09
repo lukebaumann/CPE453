@@ -26,4 +26,4 @@ handin:
 
 #remove build files
 clean:
-	rm -fr *.elf *.hex *.o
+	rm -fr *.elf *.hex *.o toPush
