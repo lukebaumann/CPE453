@@ -494,8 +494,6 @@ void createMainThread() {
    volatile struct thread_t *mainThread = &system->threads[MAX_NUMBER_OF_THREADS];
  
    mainThread->highestStackAddress = (uint8_t *) 0x8FF;
-   mainThread->lowestStackAddress = sbrk(0);
-   mainThread->stackSize = mainThread->highestStackAddress - mainThread->lowestStackAddress;
    mainThread->functionAddress = (uint16_t) main;
 
    mainThread->state = THREAD_RUNNING;
