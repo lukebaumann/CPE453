@@ -1,8 +1,8 @@
 /**
  * File: os.c
- * Authors: Luke Baumann, Tyler Kowallis
- * CPE 453 Program 02
- * 04/25/2014
+ * Authors: Luke Baumann, Chao Chen, (program 2 contribution: Tyler Kowallis)
+ * CPE 453 Program 03
+ * 05/09/2014
  */
 
 #include "os.h"
@@ -12,6 +12,10 @@ volatile struct system_t *system;
 volatile uint32_t tenMillisecondCounter = 0;
 volatile uint32_t oneSecondCounter = 0;
 
+/**
+ * A thread can yield the CPU to other threads by calling this function.
+ * All that is necessary is to switch to the next thread.
+ */
 void yield() {
    cli();
    switchNextThread();
@@ -29,24 +33,49 @@ void os_init(void) {
    system->systemTime = getSystemTime();
 }
 
+/**
+ * This puts a thread to sleep by setting its sleepingTicksLeft which is a
+ * down counter for time remaining while sleeping. Then the state is set to
+ * THREAD_SLEEPING and the next thread is switched in.
+ *
+ * @param ticks The number of ten millisecond interrupts before the
+ * thread wakes
+ */
 void thread_sleep(uint16_t ticks) {
+   cli();
+   // If ticks is 0, this will behave exactly as yield()
    if (ticks > 0) {
       system->threads[system->currentThreadId].state = THREAD_SLEEPING;
       system->threads[system->currentThreadId].sleepingTicksLeft = ticks;
    }
 
    switchNextThread();
+   sei();
 }
 
+/**
+ * Initializes a mutex
+ *
+ * @param m The address of the mutex_t 
+ */
 void mutex_init(struct mutex_t* m) {
    cli();
-   m->ownerId = 0;
+   // Above the max thread id and main thread id
+   m->ownerId = MAX_NUMBER_OF_THREADS + 2;
    m->lock = 0;
    m->startIndex = 0;
    m->endIndex = 0;
    sei();
 }
 
+/**
+ * If the mutex is not locked, the thread locks the mutex and becomes the
+ * owner. Otherwise, the thread is placed on the waiting list, put in the
+ * waiting state, and the next thread is switched in. Once the thread is
+ * no longer waiting, it locks the mutex and becomes the owner.
+ *
+ * @param m The address of the mutex_t 
+ */
 void mutex_lock(struct mutex_t* m) {
    cli();
    if (!m->lock) {
@@ -66,6 +95,13 @@ void mutex_lock(struct mutex_t* m) {
    sei();
 }
 
+/**
+ * If the thread is not the owner, do nothing. Otherwise, unlock the mutex
+ * and if there is a thread waiting, remove the first one from the waiting
+ * list, change its state to ready, and switch to it.
+ *
+ * @param m The address of the mutex_t 
+ */
 void mutex_unlock(struct mutex_t* m) {
    cli();
    uint8_t nextThreadId = 0;
@@ -86,6 +122,12 @@ void mutex_unlock(struct mutex_t* m) {
    sei();
 }
 
+/**
+ * Initiatizes a semaphore
+ *
+ * @param s The address of the semaphore_t 
+ * @param value The number of threads that can concurrently access the resource 
+ */
 void sem_init(struct semaphore_t* s, int8_t value) {
    cli();
    s->value = value;
@@ -94,21 +136,41 @@ void sem_init(struct semaphore_t* s, int8_t value) {
    sei();
 }
 
+/**
+ * If the semaphore has an available space, decrement the number of free
+ * spaces. Otherwise, put the thread on the waiting list, change its state,
+ * switch to the next thread, and then decrement the number of free spaces.
+ *
+ * It seems kind of unfair if I am finally at the front of the waiting line,
+ * someone signals, I am ready, someone else grabs my spot before I run, and
+ * now I am at the end of the waitlist again.
+ *
+ * @param s The address of the semaphore_t 
+ */
 void sem_wait(struct semaphore_t* s) {
    cli();
-   if (s->value <= 0) {
+   while (s->value <= 0) {
       s->waitingThreadsIds[s->endIndex] = system->currentThreadId;
       s->endIndex = (s->endIndex + 1) % MAX_NUMBER_OF_THREADS;
       system->threads[system->currentThreadId].state = THREAD_WAITING;
 
       switchNextThread();
    }
-   else {
-      s->value--;
-   }
+
+   s->value--;
    sei();
 }
 
+/**
+ * Increment the number of free spaces. Then, check to see if there are
+ * threads waiting. If there are, remove the first one and change its state.
+ * Do not immediately switch to it.
+ *
+ * Here is a question: How do I prevent a thread that has never
+ * called sem_wait() from calling sem_signal()?
+ *
+ * @param s The address of the semaphore_t 
+ */
 void sem_signal(struct semaphore_t* s) {
    cli();
    s->value++;
@@ -121,6 +183,12 @@ void sem_signal(struct semaphore_t* s) {
    sei();
 }
 
+/**
+ * Same as sem_signal() but it immediately switches to the first waiting
+ * thread if there is one.
+
+ * @param s The address of the semaphore_t 
+ */
 void sem_signal_swap(struct semaphore_t* s) {
    cli();
    uint8_t nextThreadId = 0;
@@ -202,9 +270,10 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
 }
 
 /**
- * Fetches the next thread to run and then invokes context-switching
- * between threads every 10 ms. The ISR is based off of the system
- * timer.
+ * Fetches the next thread to run, decrements sleeping thread's tick
+ * counters, increments the ten millisecond counter and then invokes
+ * context-switching between threads every 10 ms. The ISR is based
+ * off of the system timer.
  */
 ISR(TIMER0_COMPA_vect) {
    //The following statement tells GCC that it can use registers r18-r27, 
@@ -219,6 +288,10 @@ ISR(TIMER0_COMPA_vect) {
    switchNextThread();
 }
 
+/**
+ * Runs through all the threads and looks for sleeping threads to
+ * decrement their tick counters.
+ */
 void notifySleepingThreads() {
    uint8_t i = 0;
    for (i = 0; i < system->numberOfThreads; i++) {
@@ -231,12 +304,25 @@ void notifySleepingThreads() {
    }
 }
 
+/**
+ * Calls switchThreads() with the threadId retrieved from get_next_thread()
+ */
 void switchNextThread() {
    sei();
    switchThreads(get_next_thread());
    cli();
 }
 
+/**
+ * Switches in a new thread. If the current thread's state is THREAD_RUNNING,
+ * then it needs to be THREAD_READY. Otherwise, I do not want to change the
+ * state; keep it as THREAD_WAITING or THREAD_SLEEPING. For the next thread, 
+ * increment the runsCurrentSecond counter, and change the state to
+ * THREAD_RUNNING. Change the currentThreadId to the nextThreadId and perform
+ * the context_switch()
+ *
+ * @param nextThreadId The threadId that will be run next
+ */
 void switchThreads(uint8_t nextThreadId) {
    sei();
 
@@ -260,6 +346,10 @@ void switchThreads(uint8_t nextThreadId) {
    cli();
 }
 
+/**
+ * This is the interrupt that gets runs every second. It resets the
+ * runsCurrentSecond and sets runsLastSecond for all the threads.
+ */
 ISR(TIMER1_COMPA_vect) {
    //This interrupt routine is run once a second
    //The 2 interrupt routines will not interrupt each other
@@ -386,8 +476,8 @@ __attribute__((naked)) void thread_start(void) {
 }
 
 /**
- * Starts the operating system by starting the system timer and performing the
- * very first invocation of context_switch().
+ * Starts the operating system by starting the system timer, creating the main thread,
+ * and performing the very first invocation of context_switch().
  */
 void os_start(void) {
    createMainThread();
@@ -397,13 +487,15 @@ void os_start(void) {
     (uint16_t *) (&system->threads[MAX_NUMBER_OF_THREADS].stackPointer));
 }
 
+/**
+ * Initializes the main thread which is located at the end of the array of threads. 
+ */
 void createMainThread() {
    volatile struct thread_t *mainThread = &system->threads[MAX_NUMBER_OF_THREADS];
  
    mainThread->highestStackAddress = (uint8_t *) 0x8FF;
-   /*getStackPointer((uint8_t **) &mainThread->lowestStackAddress);
+   mainThread->lowestStackAddress = sbrk(0);
    mainThread->stackSize = mainThread->highestStackAddress - mainThread->lowestStackAddress;
-   */
    mainThread->functionAddress = (uint16_t) main;
 
    mainThread->state = THREAD_RUNNING;
@@ -411,20 +503,6 @@ void createMainThread() {
    
    mainThread->runsCurrentSecond = 1;
    mainThread->runsLastSecond = 0;
-}
-
-__attribute__((naked)) void getStackPointer(uint8_t **stackPointer) {
-   // Load current stack pointer into r16/r17
-   asm volatile("in r18, __SP_L__");
-   asm volatile("in r19, __SP_H__");
-
-   // Load the oldStackPointer into z
-   asm volatile("mov r30, r24");
-   asm volatile("mov r31, r25");
-
-   // Save current stack pointer into oldStackPointer
-   asm volatile("st z+, r18");
-   asm volatile("st z, r19");
 }
 
 /**
@@ -436,6 +514,8 @@ __attribute__((naked)) void getStackPointer(uint8_t **stackPointer) {
 uint8_t get_next_thread(void) {
    int i = 0;
 
+   // If the main thread is the current thread and no thread is ready yet,
+   // the main thread should run again
    if (system->currentThreadId == MAX_NUMBER_OF_THREADS) {
       for (i = 0; i < system->numberOfThreads; i++) {
          if (system->threads[i].state == THREAD_READY) {
@@ -447,6 +527,7 @@ uint8_t get_next_thread(void) {
    }
 
    else {
+      // Otherwise, if a thread is ready, return its index
       for (i = (system->currentThreadId + 1) % system->numberOfThreads;
        i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
          if (system->threads[i].state == THREAD_READY) {
