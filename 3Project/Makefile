@@ -1,11 +1,8 @@
 #Compile the code
-program3: program3.c os.c serial.c 
-	avr-gcc -mmcu=atmega328p -DF_CPU=16000000 -O2 -o program3.elf program3.c os.c serial.c
+program_3: program3.c os.c synchro.c serial.c 
+	avr-gcc -mmcu=atmega328p -DF_CPU=16000000 -O2 -o program3.elf program3.c os.c synchro.c serial.c
 	avr-objcopy -O ihex program3.elf program3.hex
 	avr-size program3.elf
-
-osS: os.c
-	avr-gcc -mmcu=atmega328p -DF_CPU=16000000 -O2 os.c -S
 
 #Flash the Arduino
 #Be sure to change the device (the argument after -P) to match the device on your computer
@@ -17,6 +14,7 @@ upload: program3.hex
 prepare:
 	mkdir toPush
 	cp os.c ./toPush/
+	cp synchro.c ./toPush/
 	cp os.h ./toPush/
 	cp globals.h ./toPush/
 	cp program3.c ./toPush/
@@ -24,7 +22,7 @@ prepare:
 	cp Makefile ./toPush/
 
 handin:
-	handin jseng 453_program3 os.c os.h globals.h program3.c serial.c Makefile
+	handin jseng 453_program3 os.c synchro.c os.h globals.h program3.c serial.c Makefile
 
 #remove build files
 clean:

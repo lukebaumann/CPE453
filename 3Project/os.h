@@ -117,11 +117,10 @@ struct semaphore_t {
    uint8_t endIndex;
 };
 
-void main();
+// os.c
 void os_init(void);
 void create_thread(uint16_t address, void *args, uint16_t stackSize);
 ISR(TIMER0_COMPA_vect);
-void notifySleepingThreads();
 void switchNextThread();
 void switchThreads(uint8_t nextThreadId);
 uint16_t getProgramCounter();
@@ -136,8 +135,10 @@ uint32_t getInterruptsPerSecond(void);
 
 void os_start(void);
 void createMainThread();
-__attribute__((naked)) void getStackPointer(uint8_t **stackPointer);
 
+// synchro.c
+void yield();
+void notifySleepingThreads();
 void thread_sleep(uint16_t ticks);
 
 void mutex_init(struct mutex_t* m);
@@ -149,5 +150,4 @@ void sem_wait(struct semaphore_t* s);
 void sem_signal(struct semaphore_t* s);
 void sem_signal_swap(struct semaphore_t* s);
 
-void yield();
 #endif
