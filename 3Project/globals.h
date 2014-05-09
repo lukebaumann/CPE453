@@ -53,6 +53,7 @@ void led_on();
 void led_off();
 void blink();
 void display_stats();
+void printThreadStats(uint8_t threadIndex, uint8_t threadCount);
 void display_bounded_buffer();
 void handleKeys();
 void consumer();

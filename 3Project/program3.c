@@ -15,24 +15,18 @@ extern volatile uint32_t oneSecondCounter;
 uint16_t lowStackAddress = 0;
 
 static struct semaphore_t bufferSemaphore;
+static struct mutex_t bufferMutex;
 static uint16_t bufferSize = 0;
 static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
 
-// TODO: get rid of test thread and make a main thread
-// TODO: add stats to display_stats
-void test() {
-   while(1) {}
-}
-
 /**
  * Ivokes the operating system.
  */
-int main(void) {
+void main() {
    serial_init();
    os_init();
 
-   create_thread((uint16_t) test, 0, 50);
    create_thread((uint16_t) consumer, 0, 50);
    create_thread((uint16_t) producer, 0, 50);
    create_thread((uint16_t) display_stats, 0, 50);
@@ -46,50 +40,8 @@ int main(void) {
    os_start();
    sei();
    while(1) {}
-   
-   return 0;
 }
 
-<<<<<<< HEAD
-//global variables for producer and consumer
-struct semaphore_t *full;
-struct semaphore_t *empty;
-struct mutex_t *mutex;
-int buffCounter;
-int buffer[MAX_BUFFER_SIZE];
-
-//initial global variables
-void initData() {
-   sem_init(empty, MAX_BUFFER_SIZE);
-   sem_init(full, 0);
-   mutex_init(mutex);
-   buffCounter = 0;
-}
-
-//insert item to the buffer
-int insert(int item) {
-   if (buffCounter < MAX_BUFFER_SIZE) {
-      buffer[buffCounter] = item;
-	  buffCounter++;
-	  return 0;
-   }
-   else
-      return -1;
-}
-
-void producer(int item) {
-   while(1) {
-      thread_sleep(produceTime);
-	  sem_wait(empty);
-	  mutex_lock(mutex);
-	  insert(item);
-	  mutex_unlock(mutex);
-	  sem_signal(full);
-	  led_on();
-	  //might not need it since add a counter
-      if (bufferSize < MAX_BUFFER_SIZE) {
-         bufferSize++;
-=======
 void producer() {
    while(1) {
       thread_sleep(produceTime);
@@ -98,40 +50,16 @@ void producer() {
          set_cursor(20, 50);
          print_string("produce wait              ");
          sem_wait(&bufferSemaphore);
+         mutex_lock(&bufferMutex);
          set_cursor(20, 50);
          print_string("             produce ready");
          bufferSize++;
+         mutex_unlock(&bufferMutex);
          sem_signal(&bufferSemaphore);
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
       }
    }
 }
 
-<<<<<<< HEAD
-//remove the item from the buffer
-int remove(int item) {
-   if(buffCounter > 0) {
-      item = buffer[(buffCounter-1)];
-      buffCounter--;
-      return 0;
-   }
-   else 
-      return -1;
-}
-
-void consumer(int item) {
-   while(1) {
-      thread_sleep(consumeTime);
-      sem_wait(full);
-	  mutex_lock(mutex);
-	  remove(item);
-	  mutex_unlock(mutex);
-	  sem_signal(empty);
-	  led_off();
-	  //might not need it since add a counter
-	  if (bufferSize > 0) {
-         bufferSize--;
-=======
 void consumer() {
    while(1) {
       thread_sleep(consumeTime);
@@ -139,12 +67,13 @@ void consumer() {
       if (bufferSize > 0) {
          set_cursor(21, 50);
          print_string("consume wait              ");
+         mutex_lock(&bufferMutex);
          sem_wait(&bufferSemaphore);
          set_cursor(21, 50);
          print_string("             consume ready");
          bufferSize--;
          sem_signal(&bufferSemaphore);
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
+         mutex_unlock(&bufferMutex);
       }
    }
 }

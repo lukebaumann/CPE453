@@ -118,12 +118,14 @@ struct semaphore_t {
    uint8_t endIndex;
 };
 
+void main();
 void os_init(void);
 void create_thread(uint16_t address, void *args, uint16_t stackSize);
 ISR(TIMER0_COMPA_vect);
 void notifySleepingThreads();
 void switchNextThread();
 void switchThreads(uint8_t nextThreadId);
+uint16_t getProgramCounter();
 void start_system_timer();
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer,
     uint16_t* oldStackPointer);
@@ -132,6 +134,10 @@ uint8_t get_next_thread(void);
 uint32_t getSystemTime(void);
 uint8_t getNumberOfThreads(void);
 void printSystemInfo(void);
+
+void os_start(void);
+void createMainThread();
+__attribute__((naked)) void getStackPointer(uint8_t *stackPointer);
 
 void thread_sleep(uint16_t ticks);
 

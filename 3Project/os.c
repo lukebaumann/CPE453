@@ -262,7 +262,7 @@ void switchThreads(uint8_t nextThreadId) {
 }
 
 uint16_t getProgramCounter() {
-   uint16_t stackPointer = 0;
+   uint8_t stackPointer = 0;
    uint16_t programCounter = 0;
 
    getStackPointer(&stackPointer);
@@ -414,19 +414,19 @@ void os_start(void) {
 void createMainThread() {
    volatile struct thread_t *mainThread = &system->threads[MAX_NUMBER_OF_THREADS];
    
-   mainThread->highestStackAddress = 0x8FF;
-   getStackPointer(&mainThread->lowestStackAddress);
+   mainThread->highestStackAddress = (uint8_t *) 0x8FF;
+   getStackPointer(mainThread->lowestStackAddress);
    mainThread->stackSize = mainThread->highestStackAddress - mainThread->lowestStackAddress;
-   mainThread->functionAddress = main;
+   mainThread->functionAddress = (uint16_t) main;
    mainThread->state = THREAD_RUNNING;
    mainThread->sleepingTicksLeft = 0;
    
    mainThread->runsCurrentSecond = 1;
-   mainThread->runsLasttSecond = 0;
-   mainThread->interruptedPC = ;
+   mainThread->runsLastSecond = 0;
+   mainThread->interruptedPC = (uint16_t) context_switch;
 }
 
-__attribute__((naked)) void getStackPointer(uint16_t *stackPointer) {
+__attribute__((naked)) void getStackPointer(uint8_t *stackPointer) {
    // Load current stack pointer into r16/r17
    asm volatile("in r16, __SP_L__");
    asm volatile("in r17, __SP_H__");
