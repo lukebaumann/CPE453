@@ -11,13 +11,6 @@
 volatile struct system_t *system;
 volatile uint32_t tenMillisecondCounter = 0;
 volatile uint32_t oneSecondCounter = 0;
-<<<<<<< HEAD
-=======
-
-void getMainLowAddress() {
-   system->threads[MAX_NUMBER_OF_THREADS].lowestStackAddress = sbrk(0);
-}
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
 void yield() {
    switchNextThread();
@@ -35,15 +28,10 @@ void os_init(void) {
 }
 
 void thread_sleep(uint16_t ticks) {
-<<<<<<< HEAD
-   system->threads[system->currentThreadId].state = THREAD_SLEEPING;
-   system->threads[system->currentThreadId].sleepingTicksLeft = ticks;
-=======
    if (ticks > 0) {
       system->threads[system->currentThreadId].state = THREAD_SLEEPING;
       system->threads[system->currentThreadId].sleepingTicksLeft = ticks;
    }
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
    switchNextThread();
 }
@@ -174,6 +162,9 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    newThread->functionAddress = address;
    newThread->state = THREAD_READY;
    newThread->sleepingTicksLeft = 0;
+   newThread->runsCurrentSecond = 0; 
+   newThread->runsLastSecond = 0;
+   newThread->interruptedPC = address;
 
    struct regs_context_switch *registers =
     (struct regs_context_switch *) newThread->stackPointer - 1;
@@ -256,15 +247,33 @@ void switchThreads(uint8_t nextThreadId) {
    if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
       system->threads[system->currentThreadId].state = THREAD_READY;
    }
-   system->currentThreadId = nextThreadId;
 
+   system->threads[currentThreadId].interruptedPC = getProgramCounter();
+   system->threads[nextThreadId].runsCurrentSecond++;
    system->threads[nextThreadId].state = THREAD_RUNNING;
+   
+   system->currentThreadId = nextThreadId;
 
    //Call context switch here to switch to that next thread
    context_switch((uint16_t *) &system->threads[nextThreadId].stackPointer,
     (uint16_t *) &system->threads[currentThreadId].stackPointer);
 
    cli();
+}
+
+uint16_t getProgramCounter() {
+   uint16_t stackPointer = 0;
+   uint16_t programCounter = 0;
+
+   getStackPointer(&stackPointer);
+   
+   //4 calls deep 4 pc on the stack, 1 for getProgramCounter, 1 for switchThreads, 
+   //1 for switchNextThread, 1 for ISR. Then there are the registers that are 
+   //automatically pushed by ISR.
+   programCounter = *(uint16_t *) (stackPointer + sizeof(uint16_t) * 4 + 
+    sizeof(struct regs_interrupt));
+   
+   return programCounter;
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -274,7 +283,8 @@ ISR(TIMER1_COMPA_vect) {
    uint8_t i = 0;
    
    for (i = 0; i < system->numberOfThreads; i++) {
-      //system->threads[i] 
+      system->threads[i].runsLastSecond = system->threads[i].runsCurrentSecond;
+      system->threads[i].runsCurrentSecond = 0;
    }
 }
 
@@ -397,26 +407,40 @@ void os_start(void) {
 
    start_system_timer();
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
-<<<<<<< HEAD
-    (uint16_t *) (&system->threads[7].stackPointer));
-=======
     (uint16_t *) (&system->threads[MAX_NUMBER_OF_THREADS].stackPointer));
 }
 
 
 void createMainThread() {
-   system->threads[MAX_NUMBER_OF_THREADS]
-   volatile struct thread_t *mainThread =
-    &system->threads[MAX_NUMBER_OF_THREADS];
-
-   mainThread->highestStackAddress = sbrk(0);
-   mainThread->stackSize = mainThread->highestStackAddress - 
-    mainThread->lowestStackAddress;
+   volatile struct thread_t *mainThread = &system->threads[MAX_NUMBER_OF_THREADS];
+   
+   mainThread->highestStackAddress = 0x8FF;
+   getStackPointer(&mainThread->lowestStackAddress);
+   mainThread->stackSize = mainThread->highestStackAddress - mainThread->lowestStackAddress;
    mainThread->functionAddress = main;
    mainThread->state = THREAD_RUNNING;
    mainThread->sleepingTicksLeft = 0;
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
+   
+   mainThread->runsCurrentSecond = 1;
+   mainThread->runsLasttSecond = 0;
+   mainThread->interruptedPC = ;
 }
+
+__attribute__((naked)) void getStackPointer(uint16_t *stackPointer) {
+   // Load current stack pointer into r16/r17
+   asm volatile("in r16, __SP_L__");
+   asm volatile("in r17, __SP_H__");
+
+   // Load the oldStackPointer into z
+   asm volatile("mov r30, r24");
+   asm volatile("mov r31, r25");
+
+   // Save current stack pointer into oldStackPointer
+   asm volatile("st z+, r16");
+   asm volatile("st z, r17");
+}
+ 
+
 
 /**
  * Returns the thread following the currently-executing thread in the system's
@@ -485,8 +509,4 @@ uint8_t getNumberOfThreads(void) {
 uint32_t getInterruptsPerSecond(void) {
    uint32_t sysTime = getSystemTime();
    return sysTime ? tenMillisecondCounter / sysTime : tenMillisecondCounter;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7

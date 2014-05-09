@@ -70,14 +70,7 @@ struct regs_interrupt {
    uint8_t pcl;
 };
 
-<<<<<<< HEAD
-#define MAX_NUMBER_OF_THREADS 8
-#define MAX_BUFFER_SIZE 10
-#define DEFAULT_CONSUME_TIME 100
-#define DEFAULT_PRODUCE_TIME 100
-=======
 #define MAX_NUMBER_OF_THREADS 7
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
 typedef enum STATE {
    THREAD_RUNNING = 0,
@@ -95,6 +88,9 @@ struct thread_t {
    uint8_t *highestStackAddress;
    uint8_t *stackPointer;
    STATE state;
+   uint16_t runsCurrentSecond;
+   uint16_t runsLastSecond;
+   uint16_t interruptedPC;
    uint16_t sleepingTicksLeft;
 };
 

@@ -8,18 +8,6 @@
 #include "globals.h"
 #include "os.h"
 
-<<<<<<< HEAD
-extern uint32_t oneSecondCounter;
-extern struct system_t *system;
-
-extern uint32_t tenMillisecondCounter = 0;
-extern uint32_t oneSecondCounter = 0;
-
-uint16_t bufferSize = 0;
-uint16_t consumeTime = DEFAULT_CONSUME_TIME;
-uint16_t produceTime = DEFAULT_PRODUCE_TIME;
-
-=======
 extern volatile struct system_t *system;
 extern volatile uint32_t tenMillisecondCounter;
 extern volatile uint32_t oneSecondCounter;
@@ -36,17 +24,11 @@ static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
 void test() {
    while(1) {}
 }
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
 /**
  * Ivokes the operating system.
  */
 int main(void) {
-<<<<<<< HEAD
-=======
-   getMainLowStackAddress();
-
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
    serial_init();
    os_init();
 
@@ -168,26 +150,6 @@ void consumer() {
 }
 
 void display_bounded_buffer() {
-<<<<<<< HEAD
-   set_cursor(0, 40);
-   set_color(MAGENTA);
-   print_string("Producing 1 item per ");
-   print_int(produceTime * 10);
-   print_string(" ms");
-
-   set_cursor(1, 40);
-   print_string("Consuming 1 item per ");
-   print_int(consumeTime * 10);
-   print_string(" ms");
-
-   uint8_t i = 0;
-   for (i = 0; i < bufferSize; i++) {
-      set_cursor(2 + MAX_BUFFER_SIZE - i, 50);
-      print_string("X");
-   }
-}
-
-=======
    while (1) {
       handleKeys();
 
@@ -242,8 +204,6 @@ void handleKeys() {
    }
 }
 
-
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 /**
  * Prints the following information:
  * 1. System time in seconds
@@ -258,15 +218,9 @@ void handleKeys() {
  *    stack base (lowest possible stack address)
  *    stack end (highest possible stack address)
  */
-<<<<<<< HEAD
-void printSystemInfo() {
-   while (1) {
-      //_delay_ms(100);
-=======
 void display_stats() {
    while (1) {
       thread_sleep(5);
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
       set_cursor(1, 1);
 
       set_color(MAGENTA);
@@ -281,97 +235,18 @@ void display_stats() {
       print_string("Interrupts per second: ");
       print_int32(getInterruptsPerSecond());
       print_string("   ");
-<<<<<<< HEAD
-	  set_cursor(3, 1);
-=======
       set_cursor(3, 1);
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
 
       //Number of threads in the system
       print_string("Thread count: ");
       print_int(getNumberOfThreads());
       print_string("   ");
-<<<<<<< HEAD
-	  set_cursor(4, 1);
-
-      //Per-thread information
-
-
-
-      // CHAO: Hello, Ni Hao. No \n\r. Set all of them to be set_cursor()
-      // Set all end of line print_string() to have 3 extra spaces at the end of them.
-      // Add other specs from spec.
-      // Move this function to program3.c
-      // Make system and extern variable in other file
-      // Change color of display_bounded_buffer to Magenta
-      // Test it on your arduino
-      // Add sei() and cli() to switchThreads/switchNextThread
-      // Delete old comments
-      // Add 'a' 'z' for consumer and producer in this function
-      // Add wait and signal into producer and consumer and display_bounded_buffer
-      
-	  uint8_t key = read_byte();
-	  int item = 400;
-	  //a 
-	  if (key == 97) 
-         producer(++item);
-	  //z
-      if (key == 122)	
-         producer(--item);
-	  //k
-      if (key == 107)
-         consumer(++item);
-	  //m
-      if (key == 109)
-         consumer(--item);
-		 
-	  int i = 0;
-      for (; i < system->numberOfThreads; i++) {
-         set_color(BLACK + i);
-         print_string("Thread ");
-         print_int(system->threads[i].threadId);
-         print_string("   ");
-	     set_cursor(5, 1);
-
-         print_string("Thread PC: 0x");
-         print_hex(system->threads[i].functionAddress);
-         print_string("   ");
-	     set_cursor(6, 1);
-
-         print_string("Stack usage: ");
-         print_int((uint16_t) (system->threads[i].highestStackAddress
-            - system->threads[i].stackPointer));
-         print_string("   ");
-	     set_cursor(7, 1);
-
-         print_string("Total stack size: ");
-         print_int(system->threads[i].stackSize);
-         print_string("   ");
-	     set_cursor(8, 1);
-
-         print_string("Current top of stack: 0x");
-         print_hex((uint16_t) system->threads[i].stackPointer);
-         print_string("   ");
-	     set_cursor(9, 1);
-
-         print_string("Stack base: 0x");
-         print_hex((uint16_t) system->threads[i].highestStackAddress);
-         print_string("   ");
-	     set_cursor(10, 1);
-
-         print_string("Stack end: 0x");
-         print_hex((uint16_t) system->threads[i].lowestStackAddress);
-         print_string("   ");
-	     set_cursor(11, 1);
-      }
-   }
-=======
       set_cursor(4, 1);
 
       // Delete old comments
 
       int i = 0;
-      for (; i < system->numberOfThreads; i++) {
+      for (i = 0; i < system->numberOfThreads; i++) {
          printThreadStats(i, i);
       }
 
@@ -380,43 +255,54 @@ void display_stats() {
 }
 
 void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
+   uint8_t lineNumber = 0;
+
    set_color(BLACK + threadIndex);
    print_string("Thread ");
    print_int(system->threads[threadIndex].threadId);
    print_string("   ");
-   set_cursor(5 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
    print_string("Thread PC: 0x");
    print_hex(system->threads[threadIndex].functionAddress);
    print_string("   ");
-   set_cursor(6 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Interrupted PC: 0x");
+   print_hex(system->threads[threadIndex].interruptedPC);
+   print_string("   ");
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
+
+   print_string("Runs per second: ");
+   print_int(system->threads[threadIndex].runsLastSecond);
+   print_string("   ");
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
    print_string("Stack usage: ");
    print_int((uint16_t) (system->threads[threadIndex].highestStackAddress -
     system->threads[threadIndex].stackPointer));
    print_string("   ");
-   set_cursor(7 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
    print_string("Total stack size: ");
    print_int(system->threads[threadIndex].stackSize);
    print_string("   ");
-   set_cursor(8 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
    print_string("Current top of stack: 0x");
    print_hex((uint16_t) system->threads[threadIndex].stackPointer);
    print_string("   ");
-   set_cursor(9 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
    print_string("Stack base: 0x");
    print_hex((uint16_t) system->threads[threadIndex].highestStackAddress);
    print_string("   ");
-   set_cursor(10 + threadCount * STAT_DISPLAY_HEIGHT, 1);
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
    print_string("Stack end: 0x");
    print_hex((uint16_t) system->threads[threadIndex].lowestStackAddress);
    print_string("   ");
-   set_cursor(11 + threadCount * STAT_DISPLAY_HEIGHT, 1);
->>>>>>> 70da8878e3f16415bcef5ffe615ad7601ef0e2e7
+   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 }
 
 /**
