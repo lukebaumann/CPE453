@@ -49,13 +49,16 @@ void producer() {
       if (bufferSize < MAX_BUFFER_SIZE) {
          set_cursor(20, 50);
          print_string("produce wait              ");
-         sem_wait(&bufferSemaphore);
+
          mutex_lock(&bufferMutex);
+         sem_wait(&bufferSemaphore);
+
          set_cursor(20, 50);
          print_string("             produce ready");
          bufferSize++;
-         mutex_unlock(&bufferMutex);
+
          sem_signal(&bufferSemaphore);
+         mutex_unlock(&bufferMutex);
       }
    }
 }
@@ -67,11 +70,14 @@ void consumer() {
       if (bufferSize > 0) {
          set_cursor(21, 50);
          print_string("consume wait              ");
+
          mutex_lock(&bufferMutex);
          sem_wait(&bufferSemaphore);
+
          set_cursor(21, 50);
          print_string("             consume ready");
          bufferSize--;
+
          sem_signal(&bufferSemaphore);
          mutex_unlock(&bufferMutex);
       }
@@ -197,11 +203,13 @@ void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
    print_string("   ");
    set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
+   /*
    print_string("Interrupted PC: 0x");
    print_hex(system->threads[threadIndex].interruptedPC);
    print_string("   ");
    set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
-
+   */
+   
    print_string("Runs per second: ");
    print_int(system->threads[threadIndex].runsLastSecond);
    print_string("   ");

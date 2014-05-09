@@ -164,7 +164,7 @@ void create_thread(uint16_t address, void *args, uint16_t stackSize) {
    newThread->sleepingTicksLeft = 0;
    newThread->runsCurrentSecond = 0; 
    newThread->runsLastSecond = 0;
-   newThread->interruptedPC = address;
+   //newThread->interruptedPC = address;
 
    struct regs_context_switch *registers =
     (struct regs_context_switch *) newThread->stackPointer - 1;
@@ -248,7 +248,7 @@ void switchThreads(uint8_t nextThreadId) {
       system->threads[system->currentThreadId].state = THREAD_READY;
    }
 
-   system->threads[currentThreadId].interruptedPC = getProgramCounter();
+   //system->threads[currentThreadId].interruptedPC = getProgramCounter();
    system->threads[nextThreadId].runsCurrentSecond++;
    system->threads[nextThreadId].state = THREAD_RUNNING;
    
@@ -260,9 +260,9 @@ void switchThreads(uint8_t nextThreadId) {
 
    cli();
 }
-
+/*
 uint16_t getProgramCounter() {
-   uint8_t stackPointer = 0;
+   uint8_t *stackPointer = 0;
    uint16_t programCounter = 0;
 
    getStackPointer(&stackPointer);
@@ -274,7 +274,7 @@ uint16_t getProgramCounter() {
     sizeof(struct regs_interrupt));
    
    return programCounter;
-}
+}*/
 
 ISR(TIMER1_COMPA_vect) {
    //This interrupt routine is run once a second
@@ -414,30 +414,31 @@ void os_start(void) {
 void createMainThread() {
    volatile struct thread_t *mainThread = &system->threads[MAX_NUMBER_OF_THREADS];
    
-   mainThread->highestStackAddress = (uint8_t *) 0x8FF;
-   getStackPointer(mainThread->lowestStackAddress);
+   /*mainThread->highestStackAddress = (uint8_t *) 0x8FF;
+   getStackPointer((uint8_t **) &mainThread->lowestStackAddress);
    mainThread->stackSize = mainThread->highestStackAddress - mainThread->lowestStackAddress;
    mainThread->functionAddress = (uint16_t) main;
+   mainThread->interruptedPC = (uint16_t) context_switch;
+   */
    mainThread->state = THREAD_RUNNING;
    mainThread->sleepingTicksLeft = 0;
    
    mainThread->runsCurrentSecond = 1;
    mainThread->runsLastSecond = 0;
-   mainThread->interruptedPC = (uint16_t) context_switch;
 }
 
-__attribute__((naked)) void getStackPointer(uint8_t *stackPointer) {
+__attribute__((naked)) void getStackPointer(uint8_t **stackPointer) {
    // Load current stack pointer into r16/r17
-   asm volatile("in r16, __SP_L__");
-   asm volatile("in r17, __SP_H__");
+   asm volatile("in r18, __SP_L__");
+   asm volatile("in r19, __SP_H__");
 
    // Load the oldStackPointer into z
    asm volatile("mov r30, r24");
    asm volatile("mov r31, r25");
 
    // Save current stack pointer into oldStackPointer
-   asm volatile("st z+, r16");
-   asm volatile("st z, r17");
+   asm volatile("st z+, r18");
+   asm volatile("st z, r19");
 }
  
 
