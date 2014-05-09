@@ -13,7 +13,9 @@ volatile uint32_t tenMillisecondCounter = 0;
 volatile uint32_t oneSecondCounter = 0;
 
 void yield() {
+   cli();
    switchNextThread();
+   sei();
 }
 
 /**
@@ -69,14 +71,17 @@ void mutex_unlock(struct mutex_t* m) {
    uint8_t nextThreadId = 0;
 
    if (m->ownerId == system->currentThreadId) {
-      system->threads[m->waitingThreadsIds[m->startIndex]].state = THREAD_READY;
-   
-      nextThreadId = m->waitingThreadsIds[m->startIndex];
-
-      m->startIndex = (m->startIndex + 1) % MAX_NUMBER_OF_THREADS;
       m->lock = 0;
 
-      switchThreads(nextThreadId);
+      if (m->startIndex != m->endIndex) {
+         system->threads[m->waitingThreadsIds[m->startIndex]].state = THREAD_READY;
+      
+         nextThreadId = m->waitingThreadsIds[m->startIndex];
+
+         m->startIndex = (m->startIndex + 1) % MAX_NUMBER_OF_THREADS;
+
+         switchThreads(nextThreadId);
+      }
    }
    sei();
 }
@@ -265,6 +270,9 @@ ISR(TIMER1_COMPA_vect) {
       system->threads[i].runsLastSecond = system->threads[i].runsCurrentSecond;
       system->threads[i].runsCurrentSecond = 0;
    }
+
+   system->threads[MAX_NUMBER_OF_THREADS].runsLastSecond = system->threads[MAX_NUMBER_OF_THREADS].runsCurrentSecond;
+   system->threads[MAX_NUMBER_OF_THREADS].runsCurrentSecond = 0;
 }
 
 /**
@@ -392,11 +400,11 @@ void os_start(void) {
 void createMainThread() {
    volatile struct thread_t *mainThread = &system->threads[MAX_NUMBER_OF_THREADS];
  
-   /*mainThread->highestStackAddress = (uint8_t *) 0x8FF;
-   getStackPointer((uint8_t **) &mainThread->lowestStackAddress);
+   mainThread->highestStackAddress = (uint8_t *) 0x8FF;
+   /*getStackPointer((uint8_t **) &mainThread->lowestStackAddress);
    mainThread->stackSize = mainThread->highestStackAddress - mainThread->lowestStackAddress;
-   mainThread->functionAddress = (uint16_t) main;
    */
+   mainThread->functionAddress = (uint16_t) main;
 
    mainThread->state = THREAD_RUNNING;
    mainThread->sleepingTicksLeft = 0;

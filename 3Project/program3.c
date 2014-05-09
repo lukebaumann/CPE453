@@ -15,14 +15,10 @@ extern volatile uint32_t oneSecondCounter;
 uint16_t lowStackAddress = 0;
 
 static struct semaphore_t bufferSemaphore;
-//static struct mutex_t bufferMutex;
+static struct mutex_t bufferMutex;
 static uint16_t bufferSize = 0;
 static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
-
-void test() {
-   while(1) {}
-}
 
 /**
  * Ivokes the operating system.
@@ -31,13 +27,11 @@ void main() {
    serial_init();
    os_init();
 
-   //create_thread((uint16_t) test, 0, 50);
-   create_thread((uint16_t) consumer, 0, 50);
    create_thread((uint16_t) producer, 0, 50);
-   create_thread((uint16_t) display_stats, 0, 50);
-   create_thread((uint16_t) display_bounded_buffer, 0, 50);
-   create_thread((uint16_t) blink, 0, 50);
-   //create_main
+   create_thread((uint16_t) consumer, 0, 51);
+   create_thread((uint16_t) display_stats, 0, 52);
+   create_thread((uint16_t) display_bounded_buffer, 0, 53);
+   create_thread((uint16_t) blink, 0, 54);
 
    sem_init(&bufferSemaphore, 1);
 
@@ -56,7 +50,7 @@ void producer() {
          set_cursor(20, 50);
          print_string("produce wait              ");
 
-         //mutex_lock(&bufferMutex);
+         mutex_lock(&bufferMutex);
          sem_wait(&bufferSemaphore);
 
          set_cursor(20, 50);
@@ -64,7 +58,7 @@ void producer() {
          bufferSize++;
 
          sem_signal(&bufferSemaphore);
-         //mutex_unlock(&bufferMutex);
+         mutex_unlock(&bufferMutex);
       }
    }
 }
@@ -77,7 +71,7 @@ void consumer() {
          set_cursor(21, 50);
          print_string("consume wait              ");
 
-         //mutex_lock(&bufferMutex);
+         mutex_lock(&bufferMutex);
          sem_wait(&bufferSemaphore);
 
          set_cursor(21, 50);
@@ -85,7 +79,7 @@ void consumer() {
          bufferSize--;
 
          sem_signal(&bufferSemaphore);
-         //mutex_unlock(&bufferMutex);
+         mutex_unlock(&bufferMutex);
       }
    }
 }
@@ -192,6 +186,19 @@ void display_stats() {
       }
 
       printThreadStats(MAX_NUMBER_OF_THREADS, i);
+
+
+      set_cursor(60, 60);
+      print_string("mutex: ");
+      print_int(bufferMutex.lock);
+
+      for (i = bufferMutex.startIndex; i != bufferMutex.endIndex; i = (i + 1) % MAX_NUMBER_OF_THREADS) {
+         set_cursor(61 + i, 60);
+         print_string("Waiting ");
+         print_int(i);
+         print_string(": ");
+         print_int(bufferMutex.waitingThreadsIds[i]);
+      }
    }
 }
 
@@ -260,7 +267,7 @@ void blink(void) {
          led_off();
       }
 
-      yield();
+      thread_sleep(1);
    }
 }
 
