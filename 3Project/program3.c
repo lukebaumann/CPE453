@@ -12,8 +12,6 @@ extern volatile struct system_t *system;
 extern volatile uint32_t tenMillisecondCounter;
 extern volatile uint32_t oneSecondCounter;
 
-uint16_t lowStackAddress = 0;
-
 static struct semaphore_t bufferSemaphore;
 static struct mutex_t bufferMutex;
 static uint16_t bufferSize = 0;
@@ -21,7 +19,7 @@ static uint16_t consumeTime = DEFAULT_CONSUME_TIME;
 static uint16_t produceTime = DEFAULT_PRODUCE_TIME;
 
 /**
- * Ivokes the operating system.
+ * Ivokes the operating system and is the idle thread.
  */
 void main() {
    serial_init();
@@ -42,19 +40,21 @@ void main() {
    while(1) {}
 }
 
+/**
+ * This thread sleeps for a given number of interrupts,
+ * grabs a mutex and semaphore on the bufferMutex to show
+ * that both are working, increments the buffer, releases
+ * the locks, and repeats.
+ */
 void producer() {
    while(1) {
       thread_sleep(produceTime);
 
       if (bufferSize < MAX_BUFFER_SIZE) {
-         set_cursor(20, 50);
-         print_string("produce wait              ");
 
          mutex_lock(&bufferMutex);
          sem_wait(&bufferSemaphore);
 
-         set_cursor(20, 50);
-         print_string("             produce ready");
          bufferSize++;
 
          sem_signal(&bufferSemaphore);
@@ -63,19 +63,21 @@ void producer() {
    }
 }
 
+/**
+ * This thread sleeps for a given number of interrupts,
+ * grabs a mutex and semaphore on the bufferMutex to show
+ * that both are working, decrements the buffer, releases
+ * the locks, and repeats.
+ */
 void consumer() {
    while(1) {
       thread_sleep(consumeTime);
 
       if (bufferSize > 0) {
-         set_cursor(21, 50);
-         print_string("consume wait              ");
 
          mutex_lock(&bufferMutex);
          sem_wait(&bufferSemaphore);
 
-         set_cursor(21, 50);
-         print_string("             consume ready");
          bufferSize--;
 
          sem_signal(&bufferSemaphore);
@@ -84,29 +86,37 @@ void consumer() {
    }
 }
 
+/**
+ * Displays a visual representation of the buffer and stats
+ * on how fast items are being produced and consumed. This
+ * thread is responsible for handling key presses to change
+ * produce and consume times.
+ */
 void display_bounded_buffer() {
    while (1) {
       handleKeys();
 
-      set_cursor(1, 40);
+      set_cursor(1, 81);
       set_color(MAGENTA);
       print_string("Producing 1 item per ");
       print_int(produceTime * 10);
       print_string(" ms   ");
 
-      set_cursor(2, 40);
+      set_cursor(2, 81);
       print_string("Consuming 1 item per ");
       print_int(consumeTime * 10);
       print_string(" ms   ");
 
       uint8_t i = 0;
       for (i = 0; i < MAX_BUFFER_SIZE; i++) {
-         set_cursor(3 + MAX_BUFFER_SIZE - i, 50);
+         set_color(BLACK + (i % (WHITE - BLACK)));
+         set_cursor(3 + MAX_BUFFER_SIZE - i, 91);
+
          if (i < bufferSize) {
-            print_string("X");
+            print_string("XXX");
          }
          else {
-            print_string(" ");
+            print_string("   ");
          }
       }
 
@@ -114,6 +124,12 @@ void display_bounded_buffer() {
    }
 }
 
+/**
+ * Handles key presses
+ * 'a' and 'z' control produce time
+ * 'k' and 'm' control consume time
+ * 'e' and 'f' set the buffer to 0 or filled
+ */
 void handleKeys() {
    uint8_t key = read_byte();
 
@@ -143,15 +159,8 @@ void handleKeys() {
  * Prints the following information:
  * 1. System time in seconds
  * 2. Interrupts per second (number of OS interrupts per second)
- * 3. Number of threads in the system
+ * 3. Number of threads in the system not including the main thread
  * 4. Per-thread information
- *    thread id
- *    thread pc (starting pc)
- *    stack usage (number of bytes used by the stack)
- *    total stack size (number of bytes allocated for the stack)
- *    current top of stack (current top of stack address)
- *    stack base (lowest possible stack address)
- *    stack end (highest possible stack address)
  */
 void display_stats() {
    while (1) {
@@ -178,85 +187,77 @@ void display_stats() {
       print_string("   ");
       set_cursor(4, 1);
 
-      // Delete old comments
-
       int i = 0;
       for (i = 0; i < system->numberOfThreads; i++) {
          printThreadStats(i, i);
       }
 
+      // Main thread stats
       printThreadStats(MAX_NUMBER_OF_THREADS, i);
-
-
-      set_cursor(60, 60);
-      print_string("mutex: ");
-      print_int(bufferMutex.lock);
-
-      for (i = bufferMutex.startIndex; i != bufferMutex.endIndex; i = (i + 1) % MAX_NUMBER_OF_THREADS) {
-         set_cursor(61 + i, 60);
-         print_string("Waiting ");
-         print_int(i);
-         print_string(": ");
-         print_int(bufferMutex.waitingThreadsIds[i]);
-      }
    }
 }
 
+/**
+ * Prints per thread information:
+ *    thread id
+ *    thread pc (starting pc)
+ *    runs per second, based on last second
+ *    stack usage (number of bytes used by the stack)
+ *    total stack size (number of bytes allocated for the stack)
+ *    current top of stack (current top of stack address)
+ *    stack base (lowest possible stack address)
+ *    stack end (highest possible stack address)
+ */
 void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
    uint8_t lineNumber = 0;
+   uint8_t rowOffset = 5 + (threadCount / 2) * STAT_DISPLAY_HEIGHT;
+   uint8_t colOffset = threadCount % 2 ? 41 : 1;
 
+   set_cursor(rowOffset + lineNumber++, colOffset);
    set_color(BLACK + threadIndex);
    print_string("Thread ");
    print_int(system->threads[threadIndex].threadId);
    print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
+   set_cursor(rowOffset + lineNumber++, colOffset);
    print_string("Thread PC: 0x");
    print_hex(system->threads[threadIndex].functionAddress);
    print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
-   /*
-   print_string("Interrupted PC: 0x");
-   print_hex(system->threads[threadIndex].interruptedPC);
-   print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
-   */
-   
+   set_cursor(rowOffset + lineNumber++, colOffset);
    print_string("Runs per second: ");
    print_int(system->threads[threadIndex].runsLastSecond);
    print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
+   set_cursor(rowOffset + lineNumber++, colOffset);
    print_string("Stack usage: ");
    print_int((uint16_t) (system->threads[threadIndex].highestStackAddress -
     system->threads[threadIndex].stackPointer));
    print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
+   set_cursor(rowOffset + lineNumber++, colOffset);
    print_string("Total stack size: ");
    print_int(system->threads[threadIndex].stackSize);
    print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
+   set_cursor(rowOffset + lineNumber++, colOffset);
    print_string("Current top of stack: 0x");
    print_hex((uint16_t) system->threads[threadIndex].stackPointer);
    print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
+   set_cursor(rowOffset + lineNumber++, colOffset);
    print_string("Stack base: 0x");
    print_hex((uint16_t) system->threads[threadIndex].highestStackAddress);
    print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 
+   set_cursor(rowOffset + lineNumber++, colOffset);
    print_string("Stack end: 0x");
    print_hex((uint16_t) system->threads[threadIndex].lowestStackAddress);
    print_string("   ");
-   set_cursor(5 + lineNumber++ + threadCount * STAT_DISPLAY_HEIGHT, 1);
 }
 
 /**
- * Flashes the LED on and then off with a frequency of 1 second.
+ * Turns LED on if it is producing, off otherwise 
  */
 void blink(void) {
    while (1) {
@@ -271,6 +272,9 @@ void blink(void) {
    }
 }
 
+/**
+ * Turns LED on
+ */
 void led_on() {
    //Set data direction to OUTPUT
    //Clear Z high byte
@@ -290,6 +294,9 @@ void led_on() {
    __asm__ volatile ("st Z, r18");
 }
 
+/**
+ * Turns LED off
+ */
 void led_off() {
    //Set data direction to OUTPUT
    //Clear Z high byte

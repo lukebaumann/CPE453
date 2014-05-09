@@ -42,7 +42,7 @@ void os_init(void) {
  * thread wakes
  */
 void thread_sleep(uint16_t ticks) {
-   cli();
+   //cli();
    // If ticks is 0, this will behave exactly as yield()
    if (ticks > 0) {
       system->threads[system->currentThreadId].state = THREAD_SLEEPING;
@@ -50,7 +50,7 @@ void thread_sleep(uint16_t ticks) {
    }
 
    switchNextThread();
-   sei();
+   //sei();
 }
 
 /**
@@ -495,6 +495,7 @@ void createMainThread() {
  
    mainThread->highestStackAddress = (uint8_t *) 0x8FF;
    mainThread->functionAddress = (uint16_t) main;
+   mainThread->threadId = MAX_NUMBER_OF_THREADS;
 
    mainThread->state = THREAD_RUNNING;
    mainThread->sleepingTicksLeft = 0;

@@ -132,6 +132,7 @@ uint8_t get_next_thread(void);
 uint32_t getSystemTime(void);
 uint8_t getNumberOfThreads(void);
 void printSystemInfo(void);
+uint32_t getInterruptsPerSecond(void);
 
 void os_start(void);
 void createMainThread();
