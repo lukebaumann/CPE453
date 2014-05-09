@@ -22,7 +22,7 @@ prepare:
 	cp Makefile ./toPush/
 
 handin:
-	handin jseng 453_program3 os.c synchro.c os.h globals.h program3.c serial.c Makefile
+	handin jseng 453_program3_3 os.c synchro.c os.h globals.h program3.c serial.c Makefile
 
 #remove build files
 clean:
