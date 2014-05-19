@@ -9,6 +9,8 @@
 #define GARBAGE_SIZE 1024
 
 void findSuperBlock(int fd, struct ext2_super_block *sb);
+void findGroupDescriptor(int fd, struct ext2_group_desc *gd);
 void printSuperBlockInfo(struct ext2_super_block *sb);
+void printGroupDescriptorInfo(struct ext2_group_desc *gd);
 
 #endif

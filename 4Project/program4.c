@@ -5,6 +5,7 @@ int main(int argc, char *argv[]) {
    int fd = 0;
    char *ext2Location = 0;
    struct ext2_super_block sb;
+   struct ext2_group_desc gd;
 
    ext2Location = argv[1];
 
@@ -15,6 +16,9 @@ int main(int argc, char *argv[]) {
 
    findSuperBlock(fd, &sb);
    printSuperBlockInfo(&sb);
+
+   findGroupDescriptor(fd, &gd);
+   printGroupDescriptorInfo(&gd);
 }
 
 void findSuperBlock(int fd, struct ext2_super_block *sb) {
@@ -31,6 +35,15 @@ void findSuperBlock(int fd, struct ext2_super_block *sb) {
       exit(-1);
    }
 
+   return;
+}
+
+void findGroupDescriptor(int fd, struct ext2_group_desc *gd) {
+   if (read(fd, gd, sizeof(struct ext2_group_desc)) <
+         sizeof(struct ext2_group_desc)) {
+      perror("findGroupDescriptor: Error in reading group descriptor");
+      exit(-1);
+   }
 
    return;
 }
@@ -62,6 +75,20 @@ void printSuperBlockInfo(struct ext2_super_block *sb) {
    printf("Default uid for reserved blocks: %d\n", sb->s_def_resuid);
    printf("Default gid for reserved blocks: %d\n", sb->s_def_resgid);
 
+   printf("\n");
+
    return;
 }
 
+void printGroupDescriptorInfo(struct ext2_group_desc *gd) {
+   printf("Blocks bitmap block: %d\n", gd->bg_block_bitmap);
+   printf("Inodes bitmap block: %d\n", gd->bg_inode_bitmap);
+   printf("Inodes table block: %d\n", gd->bg_inode_table);
+   printf("Free blocks count: %d\n", gd->bg_free_blocks_count);
+   printf("Free inodes count: %d\n", gd->bg_free_inodes_count);
+   printf("Directories count: %d\n", gd->bg_used_dirs_count);
+
+   printf("\n");
+
+   return;
+}
