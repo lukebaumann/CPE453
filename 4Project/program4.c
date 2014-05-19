@@ -1,9 +1,5 @@
 #include "ext2.h"
 #include "program4.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include
 
 int main(int argc, char *argv[]) {
    int fd = 0;
