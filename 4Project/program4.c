@@ -4,7 +4,7 @@
 int main(int argc, char *argv[]) {
    int fd = 0;
    char *ext2Location = 0;
-   struct ext2_super_block *sb = 0;
+   struct ext2_super_block sb;
 
    ext2Location = argv[1];
 
@@ -13,8 +13,8 @@ int main(int argc, char *argv[]) {
       exit(-1);
    }
 
-   findSuperBlock(fd, sb);
-   printSuperBlockInfo(sb);
+   findSuperBlock(fd, &sb);
+   printSuperBlockInfo(&sb);
 }
 
 void findSuperBlock(int fd, struct ext2_super_block *sb) {
