@@ -1,11 +1,15 @@
 #include "ext2.h"
 #include "program4.h"
 
+char buffer[BLOCK_SIZE];
+
 int main(int argc, char *argv[]) {
    int fd = 0;
    char *ext2Location = 0;
    struct ext2_super_block sb;
    struct ext2_group_desc gd;
+   struct ext2_inode rootDir;
+   char inodeBlock[BLOCK_SIZE];
 
    ext2Location = argv[1];
 
@@ -19,31 +23,50 @@ int main(int argc, char *argv[]) {
 
    findGroupDescriptor(fd, &gd);
    printGroupDescriptorInfo(&gd);
+
+   findInodeTable(fd, 0, &inodeBlock); 
+
+   findInode(&rootDir, ROOT_DIR_INODE_OFFSET, &inodeBlock);
+   printRootDirectory(&rootDir);
 }
 
-void findSuperBlock(int fd, struct ext2_super_block *sb) {
-   char garbage[GARBAGE_SIZE];
+void findInodeTable(int fd, int blockOffset, char *inodeBlock) {
+   readBlock(fd, INODE_TABLE_BLOCK_INDEX + blockOffset, inodeBlock);
 
-   if (read(fd, garbage, GARBAGE_SIZE) < GARBAGE_SIZE) {
-      perror("findSuperBlock: Error in reading initial 1024 bytes of garbage");
-      exit(-1);
+   return;
+}
+
+void findInode(struct ext2_inode *inode, int inodeOffset, char *inodeBlock) {
+   memcpy(inode, inodeBlock + (struct ext2_inode) * inodeOffset,
+         sizeof(struct ext2_inode));
+
+   return;
+}
+
+void readBlock(int fd, int blockIndex, void *destination) {
+   if (lseek(fd, blockIndex * BLOCK_SIZE, SEEK_SET) < 0) {
+      perror("readBlock: Error in lseek");
    }
 
-   if (read(fd, sb, sizeof(struct ext2_super_block)) <
-         sizeof(struct ext2_super_block)) {
-      perror("findSuperBlock: Error in reading super block");
-      exit(-1);
+   if (read(fd, destination, BLOCK_SIZE) < BLOCK_SIZE) {
+      perror("readBlock: Error in read");
    }
 
    return;
 }
 
+void findSuperBlock(int fd, struct ext2_super_block *sb) {
+   readBlock(fd, SUPER_BLOCK_INDEX, buffer);
+
+   memcpy(sb, buffer, sizeof(struct ext2_super_block));
+
+   return;
+}
+
 void findGroupDescriptor(int fd, struct ext2_group_desc *gd) {
-   if (read(fd, gd, sizeof(struct ext2_group_desc)) <
-         sizeof(struct ext2_group_desc)) {
-      perror("findGroupDescriptor: Error in reading group descriptor");
-      exit(-1);
-   }
+   readBlock(fd, GROUP_DESC_BLOCK_INDEX, buffer);
+
+   memcpy(gd, buffer, sizeof(struct ext2_group_desc));
 
    return;
 }
@@ -92,3 +115,4 @@ void printGroupDescriptorInfo(struct ext2_group_desc *gd) {
 
    return;
 }
+
