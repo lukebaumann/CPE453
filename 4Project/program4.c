@@ -2,69 +2,70 @@
 #include "program4.h"
 
 char buffer[BLOCK_SIZE];
+FILE *fp;
 
 int main(int argc, char *argv[]) {
-   int fd = 0;
    char *ext2Location = 0;
    struct ext2_super_block sb;
    struct ext2_group_desc gd;
    struct ext2_inode rootDir;
-   char inodeBlock[BLOCK_SIZE];
+   char blockOfInodes[BLOCK_SIZE];
 
    ext2Location = argv[1];
 
-   if ((fd = open(ext2Location, O_RDONLY)) < 0) {
+   if ((fp = fopen(ext2Location, O_RDONLY)) < 0) {
       perror("main: Error on open"); 
       exit(-1);
    }
 
-   findSuperBlock(fd, &sb);
+   findSuperBlock(fp, &sb);
    printSuperBlockInfo(&sb);
 
-   findGroupDescriptor(fd, &gd);
+   findGroupDescriptor(fp, &gd);
    printGroupDescriptorInfo(&gd);
 
-   findInodeTable(fd, 0, &inodeBlock); 
-
-   findInode(&rootDir, ROOT_DIR_INODE_OFFSET, &inodeBlock);
+   findInode(&rootDir, ROOT_DIR_INODE_OFFSET, &blockOfInodes);
    printRootDirectory(&rootDir);
 }
 
-void findInodeTable(int fd, int blockOffset, char *inodeBlock) {
-   readBlock(fd, INODE_TABLE_BLOCK_INDEX + blockOffset, inodeBlock);
+void findBlockOfInodes(FILE *fp, int blockOffset, char *blockOfInodes) {
+   readBlock(fp, INODE_TABLE_BLOCK_INDEX + blockOffset, blockOfInodes);
 
    return;
 }
 
-void findInode(struct ext2_inode *inode, int inodeOffset, char *inodeBlock) {
-   memcpy(inode, inodeBlock + (struct ext2_inode) * inodeOffset,
-         sizeof(struct ext2_inode));
+void findInode(struct ext2_inode *inode, int inodeOffset) {
+   char blockOfInodes[BLOCK_SIZE];
+
+   findBlockOfInodes(fp, (inodeOffset) / 7977, blockOfInodes); 
+   memcpy(inode, blockOfInodes + (struct ext2_inode) *
+         (inodeOffset % 7977), sizeof(struct ext2_inode));
 
    return;
 }
 
-void readBlock(int fd, int blockIndex, void *destination) {
-   if (lseek(fd, blockIndex * BLOCK_SIZE, SEEK_SET) < 0) {
-      perror("readBlock: Error in lseek");
+void readBlock(FILE *fp, int blockIndex, void *destination) {
+   if (fseek(fp, blockIndex * BLOCK_SIZE, SEEK_SET) < 0) {
+      perror("readBlock: Error in fseek");
    }
 
-   if (read(fd, destination, BLOCK_SIZE) < BLOCK_SIZE) {
-      perror("readBlock: Error in read");
+   if (fread(fp, destination, BLOCK_SIZE) < BLOCK_SIZE) {
+      perror("readBlock: Error in fread");
    }
 
    return;
 }
 
-void findSuperBlock(int fd, struct ext2_super_block *sb) {
-   readBlock(fd, SUPER_BLOCK_INDEX, buffer);
+void findSuperBlock(FILE *fp, struct ext2_super_block *sb) {
+   readBlock(fp, SUPER_BLOCK_INDEX, buffer);
 
    memcpy(sb, buffer, sizeof(struct ext2_super_block));
 
    return;
 }
 
-void findGroupDescriptor(int fd, struct ext2_group_desc *gd) {
-   readBlock(fd, GROUP_DESC_BLOCK_INDEX, buffer);
+void findGroupDescriptor(FILE *fp, struct ext2_group_desc *gd) {
+   readBlock(fp, GROUP_DESC_BLOCK_INDEX, buffer);
 
    memcpy(gd, buffer, sizeof(struct ext2_group_desc));
 
@@ -114,5 +115,15 @@ void printGroupDescriptorInfo(struct ext2_group_desc *gd) {
    printf("\n");
 
    return;
+}
+
+void printRootDirectory(struct ext2_ext2_inode *rootDir) {
+   struct ext2_dir_entry *entry;
+   int i = 0;
+
+   for (i = 0; i < EXT2_N_BLOCKS; i++) {
+      entry = r
+      printf("%60s\trootDir->i_block[i]; 
+   }
 }
 
