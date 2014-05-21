@@ -1,5 +1,5 @@
 #Compile the code
-program_4: program4.c
+program_4: program4.c 
 	gcc program4.c -o ext2reader
 
 #Moves all necessary files into a temporary folder for pushing

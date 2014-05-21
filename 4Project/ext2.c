@@ -1,4 +1,4 @@
-//the block argument is in terms of SD card 512 byte sectors
+//the bloc argument is in terms of SD card 512 byte sectors
 void read_data(uint32_t block, uint16_t offset, uint8_t* data, uint16_t size) {
    if (offset > 511) {
       printf ("Offset greater than 511.\n");

@@ -3,12 +3,14 @@
 
 char buffer[BLOCK_SIZE];
 FILE *fp;
+int inodesPerGroup = 0;
+int blocksPerGroup = 0;
 
 int main(int argc, char *argv[]) {
    char *ext2Location = 0;
    struct ext2_super_block sb;
    struct ext2_group_desc gd;
-   struct ext2_inode rootDir;
+   struct ext2_inode rootInode;
    char blockOfInodes[BLOCK_SIZE];
 
    ext2Location = argv[1];
@@ -18,56 +20,41 @@ int main(int argc, char *argv[]) {
       exit(-1);
    }
 
-   findSuperBlock(fp, &sb);
+   findSuperBlock(&sb);
+   inodesPerGroup = sb.s_inodes_per_group;
+   blocksPerGroup = sb.s_blocks_per_group;
    printSuperBlockInfo(&sb);
 
-   findGroupDescriptor(fp, &gd);
+   findGroupDescriptor(&gd);
    printGroupDescriptorInfo(&gd);
 
-   findInode(&rootDir, ROOT_DIR_INODE_OFFSET, &blockOfInodes);
-   printRootDirectory(&rootDir);
+   findInode(&rootInode, ROOT_DIR_INODE_OFFSET);
+   printInode(&rootInode);
 }
 
-void findBlockOfInodes(FILE *fp, int blockOffset, char *blockOfInodes) {
-   readBlock(fp, INODE_TABLE_BLOCK_INDEX + blockOffset, blockOfInodes);
+void findInode(struct ext2_inode *inode, int inodeNumber) {
+   int groupNumber = (inodeNumber - 1) % inodesPerGroup;
+   int inodeTableBlockOffset = (inodeNumber - 1) *
+      sizeof(struct ext2_inode) / BLOCK_SIZE;
+   int inodeOffset = (inodeNumber - 1) % inodesPerGroup; 
+
+   read_data(groupNumber * blocksPerGroup + INODE_TABLE_BLOCK_INDEX +
+         inodeTableBlockOffset, inodeOffset * sizeof(struct ext2_inode),
+         (uint8_t *) inode, sizeof(struct ext2_inode));
 
    return;
 }
 
-void findInode(struct ext2_inode *inode, int inodeOffset) {
-   char blockOfInodes[BLOCK_SIZE];
-
-   findBlockOfInodes(fp, (inodeOffset) / 7977, blockOfInodes); 
-   memcpy(inode, blockOfInodes + (struct ext2_inode) *
-         (inodeOffset % 7977), sizeof(struct ext2_inode));
+void findSuperBlock(struct ext2_super_block *sb) {
+   read_data(SUPER_BLOCK_INDEX, 0, (uint8_t *) sb,
+         sizeof(struct ext2_super_block));
 
    return;
 }
 
-void readBlock(FILE *fp, int blockIndex, void *destination) {
-   if (fseek(fp, blockIndex * BLOCK_SIZE, SEEK_SET) < 0) {
-      perror("readBlock: Error in fseek");
-   }
-
-   if (fread(fp, destination, BLOCK_SIZE) < BLOCK_SIZE) {
-      perror("readBlock: Error in fread");
-   }
-
-   return;
-}
-
-void findSuperBlock(FILE *fp, struct ext2_super_block *sb) {
-   readBlock(fp, SUPER_BLOCK_INDEX, buffer);
-
-   memcpy(sb, buffer, sizeof(struct ext2_super_block));
-
-   return;
-}
-
-void findGroupDescriptor(FILE *fp, struct ext2_group_desc *gd) {
-   readBlock(fp, GROUP_DESC_BLOCK_INDEX, buffer);
-
-   memcpy(gd, buffer, sizeof(struct ext2_group_desc));
+void findGroupDescriptor(struct ext2_group_desc *gd) {
+   read_data(GROUP_DESC_BLOCK_INDEX, 0, (uint8_t *) gd,
+         sizeof(struct ext2_group_desc));
 
    return;
 }
@@ -117,13 +104,32 @@ void printGroupDescriptorInfo(struct ext2_group_desc *gd) {
    return;
 }
 
-void printRootDirectory(struct ext2_ext2_inode *rootDir) {
+void printInode(struct ext2_inode *inode) {
    struct ext2_dir_entry *entry;
    int i = 0;
+   printf("File mode: %d\n", inode->i_mode);
+   printf("Size in bytes: %d\n", inode->i_size);
+   printf("Access time: %d\n", inode->i_atime);
+   printf("Creation time: %d\n", inode->i_ctime);
+   printf("Modification time: %d\n", inode->i_mtime);
+   printf("Deletion Time: %d\n", inode->i_dtime);
+   printf("Links count: %d\n", inode->i_links_count);
+   printf("Blocks count: %d\n", inode->i_blocks);
+   printf("File flags: %d\n", inode->i_flags);
+   printf("File version (for NFS): %d\n", inode->i_generation);
 
-   for (i = 0; i < EXT2_N_BLOCKS; i++) {
-      entry = r
-      printf("%60s\trootDir->i_block[i]; 
-   }
+   printf("\n");
+
+   return;
 }
 
+//the bloc argument is in terms of SD card 512 byte sectors
+void read_data(uint32_t block, uint16_t offset, uint8_t* data, uint16_t size) {
+   if (offset > 511) {
+      printf ("Offset greater than 511.\n");
+      exit(0);
+   }   
+
+   fseek(fp,block*512 + offset,SEEK_SET);
+   fread(data,size,1,fp);
+}
