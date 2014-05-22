@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#define BLOCK_SIZE 1024
+#define SECTOR_SIZE 512
 #define SUPER_BLOCK_INDEX 1
 #define GROUP_DESC_BLOCK_INDEX 2
 #define INODE_TABLE_BLOCK_INDEX 5

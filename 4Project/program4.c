@@ -1,28 +1,28 @@
 #include "ext2.h"
 #include "program4.h"
 
-char buffer[BLOCK_SIZE];
 FILE *fp;
 int inodesPerGroup = 0;
-int blocksPerGroup = 0;
+int sectorsPerGroup = 0;
 
 int main(int argc, char *argv[]) {
    char *ext2Location = 0;
    struct ext2_super_block sb;
    struct ext2_group_desc gd;
    struct ext2_inode rootInode;
-   char blockOfInodes[BLOCK_SIZE];
 
    ext2Location = argv[1];
 
-   if ((fp = fopen(ext2Location, O_RDONLY)) < 0) {
-      perror("main: Error on open"); 
+   printf("Hello\n");
+   if ((fp = fopen(ext2Location, "r")) == NULL) {
+      perror("main: Error on fopen"); 
       exit(-1);
    }
 
+   printf("Hello\n");
    findSuperBlock(&sb);
    inodesPerGroup = sb.s_inodes_per_group;
-   blocksPerGroup = sb.s_blocks_per_group;
+   sectorsPerGroup = 2 * sb.s_blocks_per_group;
    printSuperBlockInfo(&sb);
 
    findGroupDescriptor(&gd);
@@ -33,27 +33,32 @@ int main(int argc, char *argv[]) {
 }
 
 void findInode(struct ext2_inode *inode, int inodeNumber) {
-   int groupNumber = (inodeNumber - 1) % inodesPerGroup;
-   int inodeTableBlockOffset = (inodeNumber - 1) *
-      sizeof(struct ext2_inode) / BLOCK_SIZE;
-   int inodeOffset = (inodeNumber - 1) % inodesPerGroup; 
+   int groupNumber = (inodeNumber - 1) / inodesPerGroup;
+   int inodeTableSectorOffset = (inodeNumber - 1) *
+      sizeof(struct ext2_inode) / SECTOR_SIZE;
+   int inodeOffset = (inodeNumber - 1) % (SECTOR_SIZE /
+      sizeof(struct ext2_inode));
 
-   read_data(groupNumber * blocksPerGroup + INODE_TABLE_BLOCK_INDEX +
-         inodeTableBlockOffset, inodeOffset * sizeof(struct ext2_inode),
+   printf("groupNumber: %d\n", groupNumber);
+   printf("inodeTableSectorOffset: %d\n", inodeTableSectorOffset);
+   printf("inodeOffset: %d\n", inodeOffset);
+
+   read_data(groupNumber * sectorsPerGroup + 2 * INODE_TABLE_BLOCK_INDEX +
+         inodeTableSectorOffset, inodeOffset * sizeof(struct ext2_inode),
          (uint8_t *) inode, sizeof(struct ext2_inode));
 
    return;
 }
 
 void findSuperBlock(struct ext2_super_block *sb) {
-   read_data(SUPER_BLOCK_INDEX, 0, (uint8_t *) sb,
+   read_data(2 * SUPER_BLOCK_INDEX, 0, (uint8_t *) sb,
          sizeof(struct ext2_super_block));
 
    return;
 }
 
 void findGroupDescriptor(struct ext2_group_desc *gd) {
-   read_data(GROUP_DESC_BLOCK_INDEX, 0, (uint8_t *) gd,
+   read_data(2 * GROUP_DESC_BLOCK_INDEX, 0, (uint8_t *) gd,
          sizeof(struct ext2_group_desc));
 
    return;
