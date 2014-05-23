@@ -13,13 +13,11 @@ int main(int argc, char *argv[]) {
 
    ext2Location = argv[1];
 
-   printf("Hello\n");
    if ((fp = fopen(ext2Location, "r")) == NULL) {
       perror("main: Error on fopen"); 
       exit(-1);
    }
 
-   printf("Hello\n");
    findSuperBlock(&sb);
    inodesPerGroup = sb.s_inodes_per_group;
    sectorsPerGroup = 2 * sb.s_blocks_per_group;
@@ -30,6 +28,9 @@ int main(int argc, char *argv[]) {
 
    findInode(&rootInode, ROOT_DIR_INODE_OFFSET);
    printInode(&rootInode);
+
+   printData(&rootInode);
+
 }
 
 void findInode(struct ext2_inode *inode, int inodeNumber) {
@@ -38,10 +39,6 @@ void findInode(struct ext2_inode *inode, int inodeNumber) {
       sizeof(struct ext2_inode) / SECTOR_SIZE;
    int inodeOffset = (inodeNumber - 1) % (SECTOR_SIZE /
       sizeof(struct ext2_inode));
-
-   printf("groupNumber: %d\n", groupNumber);
-   printf("inodeTableSectorOffset: %d\n", inodeTableSectorOffset);
-   printf("inodeOffset: %d\n", inodeOffset);
 
    read_data(groupNumber * sectorsPerGroup + 2 * INODE_TABLE_BLOCK_INDEX +
          inodeTableSectorOffset, inodeOffset * sizeof(struct ext2_inode),
@@ -112,7 +109,7 @@ void printGroupDescriptorInfo(struct ext2_group_desc *gd) {
 void printInode(struct ext2_inode *inode) {
    struct ext2_dir_entry *entry;
    int i = 0;
-   printf("File mode: %d\n", inode->i_mode);
+   printf("File mode: 0x%04X\n", (uint16_t) inode->i_mode);
    printf("Size in bytes: %d\n", inode->i_size);
    printf("Access time: %d\n", inode->i_atime);
    printf("Creation time: %d\n", inode->i_ctime);
@@ -126,6 +123,112 @@ void printInode(struct ext2_inode *inode) {
    printf("\n");
 
    return;
+}
+
+void printData(struct ext2_inode *inode) {
+   switch (inode->i_mode & FILE_MODE_TYPE_MASK) {
+   case FIFO:
+      printf("Inode Type: FIFO, unimplemented");
+      break;
+   case CHARACTER_DEVICE:
+      printf("Inode Type: CHARACTER_DEVICE, unimplemented");
+      break;
+   case DIRECTORY:
+      printDirectory(inode); 
+      break;
+   case BLOCK_DEVICE:
+      printf("Inode Type: BLOCK_DEVICE, unimplemented");
+      break;
+   case REGULAR_FILE:
+      printf("Inode Type: REGULAR_FILE, unimplemented");
+      break;
+   case SYMBOLIC_LINK:
+      printf("Inode Type: SYMBOLIC_LINK, unimplemented");
+      break;
+   case UNIX_SOCKET:
+      printf("Inode Type: UNIX_SOCKET, unimplemented");
+      break;
+   default:
+      printf("Inode Type: unknown, 0x%04X", inode->i_mode & FILE_MODE_TYPE_MASK);
+      exit(-1);
+      break;
+   }
+   
+   printf("\n");
+
+   return;
+}
+
+// Ask about alignment of directory entries
+void printDirectory(struct ext2_inode *dirInode) {
+   uint32_t directorySize = dirInode->i_size;
+   uint8_t buffer[SECTOR_SIZE];
+   char typeBuffer[MAX_STRING_LENGTH];
+   struct ext2_dir_entry *entry; 
+   uint32_t sizeReadAlready = 0;
+   uint32_t i = 0;
+   uint16_t fileType = 0;
+
+   struct ext2_inode inode;
+
+   for (i = 0; dirInode->i_block[i] != 0 && i < EXT2_NDIR_BLOCKS ; i++) {
+      read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
+      while (sizeReadAlready < directorySize) {
+         printf("sizeReadAlready: %d\n", sizeReadAlready);
+         printf("directorySize: %d\n", directorySize);
+         entry = (struct ext2_dir_entry *) (buffer + 
+               sizeReadAlready - i * SECTOR_SIZE);
+         
+         findInode(&inode, entry->inode);
+         printf("entry->inode: %d\n", entry->inode);
+         fileType = getTypeName(inode.i_mode, typeBuffer);
+
+         printf("name\t%s\t", entry->name);
+         if (fileType == DIRECTORY) {
+            printf("size\t%d\t", 0);
+         }
+         else {
+            printf("size\t%d\t", inode.i_size);
+         }
+         printf("type\t%s\t", typeBuffer);
+         printf("\n");
+
+         sizeReadAlready += entry->rec_len;
+      }
+   }
+}
+
+// returns the file type and fills the buffer with a string
+// representing the file type
+uint8_t getTypeName(uint16_t mode, char *typeBuffer) {
+   switch (mode & FILE_MODE_TYPE_MASK) {
+   case FIFO:
+      strncpy(typeBuffer, "FIFO", MAX_STRING_LENGTH);
+      break;
+   case CHARACTER_DEVICE:
+      strncpy(typeBuffer, "Character Device", MAX_STRING_LENGTH);
+      break;
+   case DIRECTORY:
+      strncpy(typeBuffer, "Directory", MAX_STRING_LENGTH);
+      break;
+   case BLOCK_DEVICE:
+      strncpy(typeBuffer, "Block Device", MAX_STRING_LENGTH);
+      break;
+   case REGULAR_FILE:
+      strncpy(typeBuffer, "Regular File", MAX_STRING_LENGTH);
+      break;
+   case SYMBOLIC_LINK:
+      strncpy(typeBuffer, "Symbolic Link", MAX_STRING_LENGTH);
+      break;
+   case UNIX_SOCKET:
+      strncpy(typeBuffer, "Unix Socket", MAX_STRING_LENGTH);
+      break;
+   default:
+      strncpy(typeBuffer, "Unknown", MAX_STRING_LENGTH);
+      break;
+   }
+
+   return mode & FILE_MODE_TYPE_MASK;
 }
 
 //the bloc argument is in terms of SD card 512 byte sectors

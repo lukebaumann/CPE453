@@ -145,7 +145,7 @@ struct ext2_super_block {
 /*
  * Structure of a directory entry
  */
-
+// Added the file type field and changed name_len to uint8_t
 struct ext2_dir_entry {
    uint32_t inode;         /* Inode number */
    uint16_t rec_len;    /* Directory entry length */
