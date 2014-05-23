@@ -35,7 +35,7 @@ void printGroupDescriptorInfo(struct ext2_group_desc *gd);
 void printInode(struct ext2_inode *inode);
 void printDirectory(struct ext2_inode *dirInode);
 void printData(struct ext2_inode *inode);
-uint8_t getTypeName(uint16_t mode, char *typeBuffer);
+uint16_t getTypeName(uint16_t mode, char *typeBuffer);
 void read_data(uint32_t block, uint16_t offset, uint8_t* data, uint16_t size);
 
 #endif
