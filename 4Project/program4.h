@@ -29,7 +29,8 @@
 #define UNIX_SOCKET 0xC000
 
 void findInode(struct ext2_inode *inode, int inodeNumber);
-void findFile(struct ext2_inode *inode, char *path);
+uint8_t findFile(struct ext2_inode *inode, char *desiredPath);
+uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *currentPath, uint32_t currentPathLength);
 void findSuperBlock(struct ext2_super_block *sb);
 void findGroupDescriptor(struct ext2_group_desc *gd);
 void printSuperBlockInfo(struct ext2_super_block *sb);
