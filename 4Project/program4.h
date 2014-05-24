@@ -11,7 +11,7 @@
 #define MAX_STRING_LENGTH 256
 #define MAX_DIRECTORY_ENTRIES 256
 #define SECTORS_PER_BLOCK 2
-
+#define MAX_DIR_ENTRIES 256 
 #define SECTOR_SIZE 512
 #define SUPER_BLOCK_INDEX 1
 #define GROUP_DESC_BLOCK_INDEX 2
@@ -29,11 +29,13 @@
 #define UNIX_SOCKET 0xC000
 
 void findInode(struct ext2_inode *inode, int inodeNumber);
+void findFile(struct ext2_inode *inode, char *path);
 void findSuperBlock(struct ext2_super_block *sb);
 void findGroupDescriptor(struct ext2_group_desc *gd);
 void printSuperBlockInfo(struct ext2_super_block *sb);
 void printGroupDescriptorInfo(struct ext2_group_desc *gd);
 void printInode(struct ext2_inode *inode);
+uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries);
 void printDirectory(struct ext2_inode *dirInode);
 void printData(struct ext2_inode *inode);
 uint16_t getTypeName(uint16_t mode, char *typeBuffer);

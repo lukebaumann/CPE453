@@ -8,9 +8,16 @@ int main(int argc, char *argv[]) {
    char *ext2Location = 0;
    struct ext2_super_block sb;
    struct ext2_group_desc gd;
-   struct ext2_inode rootInode;
+   struct ext2_inode inode;
+   char *path;
 
    ext2Location = argv[1];
+   if (argc > 2) {
+      path = argv[2];
+   }
+   else {
+      path = "/";
+   }
 
    if ((fp = fopen(ext2Location, "r")) == NULL) {
       perror("main: Error on fopen"); 
@@ -20,17 +27,35 @@ int main(int argc, char *argv[]) {
    findSuperBlock(&sb);
    inodesPerGroup = sb.s_inodes_per_group;
    sectorsPerGroup = 2 * sb.s_blocks_per_group;
-   printSuperBlockInfo(&sb);
 
-   findGroupDescriptor(&gd);
-   printGroupDescriptorInfo(&gd);
-
-   findInode(&rootInode, ROOT_DIR_INODE_OFFSET);
-   printInode(&rootInode);
-
-   printData(&rootInode);
-
+   findFile(&inode, path);
+   
+   printData(&inode);
 }
+
+void findFile(struct ext2_inode *inode, char *path) {
+   char currentPath[MAX_STRING_LENGTH];
+   currentPath[0] = '/';
+   currentPath[1] = '\0';
+
+   findInode(inode, ROOT_DIR_INODE_OFFSET);
+
+   //findFile(inode, path, currentPath);
+   
+}
+/*
+void findFile(struct ext2_inode *inode, char *path, char *currentPath) {
+   // pathTest = 0 match
+   // pathTest < 0 non existant
+   // pathTest > 0 go deeper
+   uint8_t pathTest = strcmp(path, currentPath);
+   if (strcmp(path, currentPath) < 0) {
+
+
+   }
+   else 
+
+}*/
 
 void findInode(struct ext2_inode *inode, int inodeNumber) {
    int groupOffset = (inodeNumber - 1) / inodesPerGroup;
@@ -159,44 +184,59 @@ void printData(struct ext2_inode *inode) {
    return;
 }
 
-// Major hack way to aphabetize directory entries
-void printDirectory(struct ext2_inode *dirInode) {
+uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries) {
    uint32_t directorySize = dirInode->i_size;
    uint8_t buffer[SECTOR_SIZE];
-   char typeBuffer[MAX_STRING_LENGTH];
-   char nameBuffer[MAX_STRING_LENGTH];
-   struct ext2_dir_entry *entry; 
    uint32_t sizeReadAlready = 0;
    uint32_t i = 0;
-   uint16_t fileType = 0;
    uint32_t numberOfDirectoryEntries = 0;
+   struct ext2_dir_entry *entry;
+   uint32_t entryLength = 0;
 
-   struct ext2_inode inode;
-
-   printf("name\tsize\ttype\n");
    for (i = 0; dirInode->i_block[i] != 0 && i < EXT2_NDIR_BLOCKS ; i++) {
       read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
       for (; sizeReadAlready < directorySize; numberOfDirectoryEntries++) {
-         entry = (struct ext2_dir_entry *) (buffer + 
+         entry = (struct ext2_dir_entry *) (buffer +
                sizeReadAlready - i * SECTOR_SIZE);
+         entryLength = entry->rec_len;
+         entries[numberOfDirectoryEntries] = malloc(entryLength);
 
-         //printf("entry->inode: %d\n", entry->inode);
-
-         findInode(&inode, entry->inode);
-
-         // Should use directoryEntires[i] as buffer but not enough time to
-         // do things the right way
-         getTypeName(inode.i_mode, typeBuffer);
-         strncpy(nameBuffer, entry->name, entry->name_len);
-         nameBuffer[entry->name_len] = '\0';
-
-         printf("%s\t", nameBuffer);
-         printf("%d\t", inode.i_size);
-         printf("%s", typeBuffer);
-         printf("\n");
-
-         sizeReadAlready += entry->rec_len;
+         memcpy(entries[numberOfDirectoryEntries], buffer + sizeReadAlready -
+               i * SECTOR_SIZE, entryLength);
+         sizeReadAlready += entryLength;
       }
+   }
+
+   return numberOfDirectoryEntries;
+}
+
+// Major hack way to aphabetize directory entries
+void printDirectory(struct ext2_inode *dirInode) {
+   char typeBuffer[MAX_STRING_LENGTH];
+   char nameBuffer[MAX_STRING_LENGTH];
+   uint32_t i = 0;
+   struct ext2_dir_entry *entries[MAX_DIR_ENTRIES];
+   uint32_t numberOfDirectoryEntries = getDirectories(dirInode, entries);
+
+   struct ext2_inode inode;
+   struct ext2_dir_entry *entry;
+
+   printf("name\tsize\ttype\n");
+   for (i = 0; i < numberOfDirectoryEntries; i++) {
+      entry = entries[i]; 
+
+      findInode(&inode, entry->inode);
+
+      getTypeName(inode.i_mode, typeBuffer);
+      strncpy(nameBuffer, entry->name, entry->name_len);
+      nameBuffer[entry->name_len] = '\0';
+
+      printf("%s\t", nameBuffer);
+      printf("%d\t", inode.i_size);
+      printf("%s", typeBuffer);
+      printf("\n");
+
+      free(entry);
    }
 }
 
