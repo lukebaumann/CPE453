@@ -1,10 +1,8 @@
-#include "ext2.h"
 #include "program4.h"
 
 FILE *fp;
 int inodesPerGroup = 0;
 int sectorsPerGroup = 0;
-int blockSize = 0;
 
 int main(int argc, char *argv[]) {
    char *ext2Location = 0;
@@ -22,7 +20,6 @@ int main(int argc, char *argv[]) {
    findSuperBlock(&sb);
    inodesPerGroup = sb.s_inodes_per_group;
    sectorsPerGroup = 2 * sb.s_blocks_per_group;
-   blockSize = 1024; 
    printSuperBlockInfo(&sb);
 
    findGroupDescriptor(&gd);
@@ -36,22 +33,16 @@ int main(int argc, char *argv[]) {
 }
 
 void findInode(struct ext2_inode *inode, int inodeNumber) {
-   int groupNumber = (inodeNumber - 1) / inodesPerGroup;
-   int inodeOffset = (inodeNumber - 1) % inodesPerGroup;
-   int blockOffset = (inodeOffset * EXT2_GOOD_OLD_INODE_SIZE) / blockSize;
+   int groupOffset = (inodeNumber - 1) / inodesPerGroup;
+   int inodeGroupOffset = (inodeNumber - 1) % inodesPerGroup;
+   int sectorOffset = (inodeGroupOffset * EXT2_GOOD_OLD_INODE_SIZE) / SECTOR_SIZE;
+   int inodeSectorOffset = inodeGroupOffset % (SECTOR_SIZE / EXT2_GOOD_OLD_INODE_SIZE);
 
-   if (inodeOffset * sizeof(struct ext2_inode) < SECTOR_SIZE) {
-      read_data(groupNumber * sectorsPerGroup + SECTORS_PER_BLOCK *
-            INODE_TABLE_BLOCK_INDEX + blockOffset * SECTORS_PER_BLOCK,
-            inodeOffset * sizeof(struct ext2_inode),
-            (uint8_t *) inode, sizeof(struct ext2_inode));
-   }
-   else {
-      read_data(groupNumber * sectorsPerGroup + SECTORS_PER_BLOCK *
-            INODE_TABLE_BLOCK_INDEX + blockOffset * SECTORS_PER_BLOCK + 1,
-            inodeOffset * sizeof(struct ext2_inode) - SECTOR_SIZE,
-            (uint8_t *) inode, sizeof(struct ext2_inode));
-   }
+
+   read_data(groupOffset * sectorsPerGroup + SECTORS_PER_BLOCK *
+         INODE_TABLE_BLOCK_INDEX + sectorOffset,
+         inodeSectorOffset * sizeof(struct ext2_inode),
+         (uint8_t *) inode, sizeof(struct ext2_inode));
 
    return;
 }
@@ -168,7 +159,7 @@ void printData(struct ext2_inode *inode) {
    return;
 }
 
-// Ask about alignment of directory entries
+// Major hack way to aphabetize directory entries
 void printDirectory(struct ext2_inode *dirInode) {
    uint32_t directorySize = dirInode->i_size;
    uint8_t buffer[SECTOR_SIZE];
@@ -178,21 +169,24 @@ void printDirectory(struct ext2_inode *dirInode) {
    uint32_t sizeReadAlready = 0;
    uint32_t i = 0;
    uint16_t fileType = 0;
+   uint32_t numberOfDirectoryEntries = 0;
 
    struct ext2_inode inode;
 
-   printf("name\tsize\n");
+   printf("name\tsize\ttype\n");
    for (i = 0; dirInode->i_block[i] != 0 && i < EXT2_NDIR_BLOCKS ; i++) {
       read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-      while (sizeReadAlready < directorySize) {
+      for (; sizeReadAlready < directorySize; numberOfDirectoryEntries++) {
          entry = (struct ext2_dir_entry *) (buffer + 
                sizeReadAlready - i * SECTOR_SIZE);
-         
-         printf("entry->inode: %d\n", entry->inode);
+
+         //printf("entry->inode: %d\n", entry->inode);
 
          findInode(&inode, entry->inode);
 
-         fileType = getTypeName(inode.i_mode, typeBuffer);
+         // Should use directoryEntires[i] as buffer but not enough time to
+         // do things the right way
+         getTypeName(inode.i_mode, typeBuffer);
          strncpy(nameBuffer, entry->name, entry->name_len);
          nameBuffer[entry->name_len] = '\0';
 

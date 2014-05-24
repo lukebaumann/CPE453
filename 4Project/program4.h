@@ -6,9 +6,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include "ext2.h"
 
 #define MAX_STRING_LENGTH 256
-
+#define MAX_DIRECTORY_ENTRIES 256
 #define SECTORS_PER_BLOCK 2
 
 #define SECTOR_SIZE 512
