@@ -51,31 +51,8 @@ uint8_t findFile(struct ext2_inode *inode, char *desiredPath) {
       found = 1;
    }
    else {
-      currentPath[0] = '/';
-      currentPath[1] = '\0';
-      currentPathLength = 1;
-
-      found = findFileRecursive(inode, desiredPath, currentPath, currentPathLength);
-      /*
-      numberOfDirectoryEntries = getDirectories(inode, entries);
-
-      for (i = 0; i < numberOfDirectoryEntries; i++) {
-         findInode(&tempInode, entries[i]->inode);
-         strncpy(currentPath + currentPathLength, entries[i]->name, entries[i]->name_len);
-         currentPath[currentPathLength + entries[i]->name_len] = '\0';
-
-         if ((found = strcmp(currentPath, desiredPath))) {
-            memcpy(inode, &tempInode, sizeof(struct ext2_inode));
-            break;
-         }
-         else if ((tempInode.i_mode & FILE_MODE_TYPE_MASK) == DIRECTORY &&
-               !strncmp(currentPath, desiredPath, currentPathLength + entries[i]->name_len) &&
-               (found = findFileRecursive(&tempInode, desiredPath,
-               currentPath, currentPathLength + entries[i]->name_len))) {
-            memcpy(inode, &tempInode, sizeof(struct ext2_inode));
-            break;
-         }
-      }*/
+      currentPath[0] = '\0';
+      found = findFileRecursive(inode, desiredPath, currentPath, 0);
    }
 
    return found;
@@ -90,12 +67,12 @@ uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *cur
 
    numberOfDirectoryEntries = getDirectories(inode, entries);
 
-   printf("Here\n");
 
    for (i = 0; i < numberOfDirectoryEntries; i++) {
       findInode(&tempInode, entries[i]->inode);
-      strncpy(currentPath + currentPathLength, entries[i]->name, entries[i]->name_len);
-      currentPath[currentPathLength + entries[i]->name_len] = '\0';
+      currentPath[currentPathLength] = '/';
+      strncpy(currentPath + currentPathLength + 1, entries[i]->name, entries[i]->name_len);
+      currentPath[currentPathLength + 1 + entries[i]->name_len] = '\0';
 
       if (!strcmp(currentPath, desiredPath)) {
          found = 1;
@@ -103,11 +80,10 @@ uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *cur
          break;
       }
       else if ((tempInode.i_mode & FILE_MODE_TYPE_MASK) == DIRECTORY &&
-            !strncmp(currentPath, desiredPath, currentPathLength + entries[i]->name_len) &&
+            !strncmp(currentPath, desiredPath, currentPathLength + 1 + entries[i]->name_len) &&
             findFileRecursive(&tempInode, desiredPath,
-            currentPath, currentPathLength + entries[i]->name_len)) {
+            currentPath, currentPathLength + 1 + entries[i]->name_len)) {
          found = 1;
-         printf("2FOUND!\n");
          memcpy(inode, &tempInode, sizeof(struct ext2_inode));
          break;
       }
