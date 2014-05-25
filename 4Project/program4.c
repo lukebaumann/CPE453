@@ -229,15 +229,16 @@ void printRegularFile(struct ext2_inode *inode) {
    uint8_t numberOfBlocks = inode->i_size / BLOCK_SIZE + 1;
    uint8_t numberOfDirectBlocks = numberOfBlocks > EXT2_NDIR_BLOCKS ? EXT2_NDIR_BLOCKS : numberOfBlocks;
 
-   for (i = 0; i < numberOfDirectBlocks; i++) {
-      //printf("inode->i_block[%d]: %d\n", i, inode->i_block[i]); 
-
+   for (i = 0; sizeRemaining > 0 && i < numberOfDirectBlocks; i++) {
       read_data(inode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-      read_data(inode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
 
-      fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+      sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
 
-      sizeRemaining -= SECTOR_SIZE * 2;
+      if (sizeRemaining > 0) {
+         read_data(inode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+
+         sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+      }
    }
 }
 
