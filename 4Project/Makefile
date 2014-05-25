@@ -1,6 +1,6 @@
 #Compile the code
 program_4: program4.c 
-	gcc program4.c -o ext2reader
+	gcc program4.c -o ext2reader -g
 
 #Moves all necessary files into a temporary folder for pushing
 prepare:

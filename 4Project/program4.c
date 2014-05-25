@@ -67,12 +67,15 @@ uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *cur
 
    numberOfDirectoryEntries = getDirectories(inode, entries);
 
-
    for (i = 0; i < numberOfDirectoryEntries; i++) {
       findInode(&tempInode, entries[i]->inode);
       currentPath[currentPathLength] = '/';
       strncpy(currentPath + currentPathLength + 1, entries[i]->name, entries[i]->name_len);
       currentPath[currentPathLength + 1 + entries[i]->name_len] = '\0';
+
+      //printf("currentPath: %s\n", currentPath);
+      //printf("entry[%d]->inode: %d\n", i, entries[i]->inode);
+      //printInode(&tempInode);
 
       if (!strcmp(currentPath, desiredPath)) {
          found = 1;
@@ -222,24 +225,41 @@ void printData(struct ext2_inode *inode) {
 uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries) {
    uint32_t directorySize = dirInode->i_size;
    uint8_t buffer[SECTOR_SIZE];
-   uint32_t sizeReadAlready = 0;
+   uint32_t sectorSizeReadAlready = 0;
+   uint32_t directorySizeReadAlready = 0;
    uint32_t i = 0;
    uint32_t numberOfDirectoryEntries = 0;
    struct ext2_dir_entry *entry;
    uint32_t entryLength = 0;
 
-   for (i = 0; dirInode->i_block[i] != 0 && i < EXT2_NDIR_BLOCKS ; i++) {
-      read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-      for (; sizeReadAlready < directorySize; numberOfDirectoryEntries++) {
-         entry = (struct ext2_dir_entry *) (buffer +
-               sizeReadAlready - i * SECTOR_SIZE);
+   printf("Start\n");
+   for (i = 0; dirInode->i_block[i] && i < EXT2_NDIR_BLOCKS ; i++) {
+      sectorSizeReadAlready = 0;
+      printf("i: %d\n", i);
+
+      for (; directorySizeReadAlready < directorySize &&
+            sectorSizeReadAlready < BLOCK_SIZE; numberOfDirectoryEntries++) {
+         read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK +
+               sectorSizeReadAlready > SECTOR_SIZE ? 1 : 0,
+               sectorSizeReadAlready > SECTOR_SIZE ?
+               sectorSizeReadAlready - SECTOR_SIZE :
+               sectorSizeReadAlready, buffer,
+               BLOCK_SIZE - sectorSizeReadAlready <
+               SECTOR_SIZE ? BLOCK_SIZE - sectorSizeReadAlready :
+               sectorSizeReadAlready);
+
+         printf("numberOfDirectoryEntries: %d\n", numberOfDirectoryEntries);
+         entry = (struct ext2_dir_entry *) buffer;
          entryLength = entry->rec_len;
          entries[numberOfDirectoryEntries] = malloc(entryLength);
 
-         memcpy(entries[numberOfDirectoryEntries], buffer + sizeReadAlready -
-               i * SECTOR_SIZE, entryLength);
-         sizeReadAlready += entryLength;
-      }
+         memcpy(entries[numberOfDirectoryEntries],
+               buffer + sectorSizeReadAlready - i * SECTOR_SIZE, entryLength);
+
+         sectorSizeReadAlready += entryLength;
+         directorySizeReadAlready += entryLength;
+         printf("sectorSizeReadAlready: %d\n", sectorSizeReadAlready);
+      } 
    }
 
    return numberOfDirectoryEntries;
