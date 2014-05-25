@@ -42,5 +42,6 @@ void printDirectory(struct ext2_inode *dirInode);
 void printData(struct ext2_inode *inode);
 uint16_t getTypeName(uint16_t mode, char *typeBuffer);
 void read_data(uint32_t block, uint16_t offset, uint8_t* data, uint16_t size);
+void printDirectoryEntry(struct ext2_dir_entry *entry);
 
 #endif
