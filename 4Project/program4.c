@@ -203,7 +203,7 @@ void printData(struct ext2_inode *inode) {
       printf("Inode Type: BLOCK_DEVICE, unimplemented");
       break;
    case REGULAR_FILE:
-      printf("Inode Type: REGULAR_FILE, unimplemented");
+      printRegularFile(inode);
       break;
    case SYMBOLIC_LINK:
       printf("Inode Type: SYMBOLIC_LINK, unimplemented");
@@ -222,6 +222,26 @@ void printData(struct ext2_inode *inode) {
    return;
 }
 
+void printRegularFile(struct ext2_inode *inode) {
+   uint8_t buffer[BLOCK_SIZE];
+   uint32_t sizeRemaining = inode->i_size;
+   uint32_t i = 0;
+   uint8_t numberOfBlocks = inode->i_size / BLOCK_SIZE + 1;
+   uint8_t numberOfDirectBlocks = numberOfBlocks > EXT2_NDIR_BLOCKS ? EXT2_NDIR_BLOCKS : numberOfBlocks;
+
+   for (i = 0; i < numberOfDirectBlocks; i++) {
+      //printf("inode->i_block[%d]: %d\n", i, inode->i_block[i]); 
+
+      read_data(inode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
+      read_data(inode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+
+      fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+
+      sizeRemaining -= SECTOR_SIZE * 2;
+   }
+}
+
+// Need to do indirect blocks next
 uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries) {
    uint8_t buffer[BLOCK_SIZE];
    uint32_t sizeReadAlready = 0;
@@ -235,7 +255,7 @@ uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **ent
    uint8_t numberOfDirectBlocks = numberOfBlocks > EXT2_NDIR_BLOCKS ? EXT2_NDIR_BLOCKS : numberOfBlocks;
 
    for (i = 0; i < numberOfDirectBlocks; i++) {
-      printf("dirInode->i_block[%d]: %d\n", i, dirInode->i_block[i]); 
+      //printf("dirInode->i_block[%d]: %d\n", i, dirInode->i_block[i]); 
 
       sizeReadAlready = 0;
       read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
@@ -245,15 +265,13 @@ uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **ent
          entry = (struct ext2_dir_entry *) (buffer + sizeReadAlready);
          entryLength = entry->rec_len;
 
-         printDirectoryEntry(entry);
-
          entries[numberOfDirectoryEntries] = malloc(entryLength);
 
          memcpy(entries[numberOfDirectoryEntries], entry, entryLength);
 
          sizeReadAlready += entryLength;
-         printf("sizeReadAlready: %d\n", sizeReadAlready);
-         printf("dirInode->size: %d\n", dirInode->i_size);
+         //printf("sizeReadAlready: %d\n", sizeReadAlready);
+         //printf("dirInode->size: %d\n", dirInode->i_size);
       } 
    }
 

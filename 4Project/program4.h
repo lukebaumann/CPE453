@@ -37,6 +37,7 @@ void findGroupDescriptor(struct ext2_group_desc *gd);
 void printSuperBlockInfo(struct ext2_super_block *sb);
 void printGroupDescriptorInfo(struct ext2_group_desc *gd);
 void printInode(struct ext2_inode *inode);
+void printRegularFile(struct ext2_inode *inode);
 uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries);
 void printDirectory(struct ext2_inode *dirInode);
 void printData(struct ext2_inode *inode);
