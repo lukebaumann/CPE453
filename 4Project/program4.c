@@ -224,22 +224,46 @@ void printData(struct ext2_inode *inode) {
 
 void printRegularFile(struct ext2_inode *inode) {
    uint8_t buffer[BLOCK_SIZE];
+   uint32_t indirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
    uint32_t sizeRemaining = inode->i_size;
    uint32_t i = 0;
-   uint8_t numberOfBlocks = inode->i_size / BLOCK_SIZE + 1;
-   uint8_t numberOfDirectBlocks = numberOfBlocks > EXT2_NDIR_BLOCKS ? EXT2_NDIR_BLOCKS : numberOfBlocks;
+   uint32_t j = 0;
+   uint32_t numberOfBlocks = inode->i_size / BLOCK_SIZE + 1;
 
-   for (i = 0; sizeRemaining > 0 && i < numberOfDirectBlocks; i++) {
-      read_data(inode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-
-      sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
-
-      if (sizeRemaining > 0) {
-         read_data(inode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+   if (numberOfBlocks) {
+      for (i = 0; sizeRemaining > 0 && i < numberOfBlocks && i < EXT2_NDIR_BLOCKS; i++) {
+         read_data(inode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
 
          sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+
+         if (sizeRemaining > 0) {
+            read_data(inode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+
+            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+         }
       }
+      numberOfBlocks -= i;
    }
+
+   if (numberOfBlocks) {
+      read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+
+
+      for (i = 0; sizeRemaining > 0 && i < numberOfBlocks && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
+         read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
+
+         sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+
+         if (sizeRemaining > 0) {
+            read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+
+            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+         }
+      }
+      numberOfBlocks -= i;
+   }
+
 }
 
 // Need to do indirect blocks next
