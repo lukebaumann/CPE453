@@ -231,14 +231,18 @@ uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **ent
    uint32_t entryLength = 0;
    uint32_t nameLength = 0;
 
-   for (i = 0; dirInode->i_block[i] != 0 && i < EXT2_NDIR_BLOCKS ; i++) {
+   uint8_t numberOfBlocks = dirInode->i_size / BLOCK_SIZE;
+   uint8_t numberOfDirectBlocks = numberOfBlocks > EXT2_NDIR_BLOCKS ? EXT2_NDIR_BLOCKS : numberOfBlocks;
+
+   for (i = 0; i < numberOfDirectBlocks; i++) {
+      printf("dirInode->i_block[%d]: %d\n", i, dirInode->i_block[i]); 
+
       sizeReadAlready = 0;
       read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
       read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
 
       for (; sizeReadAlready < BLOCK_SIZE; numberOfDirectoryEntries++) {
-         entry = (struct ext2_dir_entry *) (buffer +
-               sizeReadAlready - i * SECTOR_SIZE);
+         entry = (struct ext2_dir_entry *) (buffer + sizeReadAlready);
          entryLength = entry->rec_len;
 
          printDirectoryEntry(entry);
@@ -249,6 +253,7 @@ uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **ent
 
          sizeReadAlready += entryLength;
          printf("sizeReadAlready: %d\n", sizeReadAlready);
+         printf("dirInode->size: %d\n", dirInode->i_size);
       } 
    }
 
