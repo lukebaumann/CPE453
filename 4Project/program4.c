@@ -73,10 +73,10 @@ uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *cur
       strncpy(currentPath + currentPathLength + 1, entries[i]->name, entries[i]->name_len);
       currentPath[currentPathLength + 1 + entries[i]->name_len] = '\0';
 
-      //printf("currentPath: %s\n", currentPath);
-      //printf("entry[%d]->inode: %d\n", i, entries[i]->inode);
-      //printInode(&tempInode);
-
+      /*printf("currentPath: %s\t", currentPath);
+      printf("entry[%d]->inode: %d\n", i, entries[i]->inode);
+      printInode(&tempInode);
+*/
       if (!strcmp(currentPath, desiredPath)) {
          found = 1;
          memcpy(inode, &tempInode, sizeof(struct ext2_inode));
@@ -225,6 +225,7 @@ void printData(struct ext2_inode *inode) {
 void printRegularFile(struct ext2_inode *inode) {
    uint8_t buffer[BLOCK_SIZE];
    uint32_t indirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
+   uint32_t doubleIndirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
    uint32_t sizeRemaining = inode->i_size;
    uint32_t i = 0;
    uint32_t j = 0;
@@ -234,12 +235,12 @@ void printRegularFile(struct ext2_inode *inode) {
       for (i = 0; sizeRemaining > 0 && i < numberOfBlocks && i < EXT2_NDIR_BLOCKS; i++) {
          read_data(inode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
 
-         sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+         sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
 
          if (sizeRemaining > 0) {
-            read_data(inode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+            read_data(inode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer, SECTOR_SIZE);
 
-            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
          }
       }
       numberOfBlocks -= i;
@@ -249,21 +250,42 @@ void printRegularFile(struct ext2_inode *inode) {
       read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
       read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
 
-
       for (i = 0; sizeRemaining > 0 && i < numberOfBlocks && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
          read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
 
-         sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+         sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
 
          if (sizeRemaining > 0) {
-            read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+            read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK + 1, 0, buffer, SECTOR_SIZE);
 
-            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE * 2 ? SECTOR_SIZE * 2 : sizeRemaining, stdout);
+            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
          }
       }
       numberOfBlocks -= i;
    }
 
+   if (numberOfBlocks) {
+      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+
+      for (j = 0; sizeRemaining > 0 && j < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; j++) {
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+
+         for (i = 0; sizeRemaining > 0 && i < numberOfBlocks && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
+            read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
+
+            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
+
+            if (sizeRemaining > 0) {
+               read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK + 1, 0, buffer, SECTOR_SIZE);
+
+               sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
+            }
+         }
+         numberOfBlocks -= i;
+      }
+   }
 }
 
 // Need to do indirect blocks next
