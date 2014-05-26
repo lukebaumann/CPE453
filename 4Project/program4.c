@@ -101,7 +101,6 @@ void findInode(struct ext2_inode *inode, int inodeNumber) {
    int sectorOffset = (inodeGroupOffset * EXT2_GOOD_OLD_INODE_SIZE) / SECTOR_SIZE;
    int inodeSectorOffset = inodeGroupOffset % (SECTOR_SIZE / EXT2_GOOD_OLD_INODE_SIZE);
 
-
    read_data(groupOffset * sectorsPerGroup + SECTORS_PER_BLOCK *
          INODE_TABLE_BLOCK_INDEX + sectorOffset,
          inodeSectorOffset * sizeof(struct ext2_inode),
@@ -325,12 +324,59 @@ uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **ent
    return numberOfDirectoryEntries;
 }
 
+int compar(const void *p1, const void *p2) {
+   struct ext2_dir_entry *entry1 = *(struct ext2_dir_entry **) p1;
+   struct ext2_dir_entry *entry2 = *(struct ext2_dir_entry **) p2;
+
+   if (!strncmp(entry1->name, ".", 1)) {
+      if (entry1->name_len == 1) {
+         return -1;
+      }
+   }
+   if (!strncmp(entry2->name, ".", 1)) {
+      if (entry2->name_len == 1) {
+         return 1;
+      }
+   }
+   if (!strncmp(entry1->name, "..", 2)) {
+      if (entry1->name_len == 2) {
+         return -1;
+      }
+   }
+   if (!strncmp(entry2->name, "..", 2)) {
+      if (entry2->name_len == 2) {
+         return 1;
+      }
+   }
+
+   uint8_t minNameLength = entry1->name_len < entry2->name_len ?
+      entry1->name_len : entry2->name_len;
+
+   int8_t test = strncmp(entry1->name, entry2->name, minNameLength);
+
+   if (!test) {
+      if (entry1->name_len < entry2->name_len) {
+         return -1;
+      }
+      else if (entry1->name_len > entry2->name_len) {
+         return 1;
+      }
+      else {
+         return 0;
+      }
+   }
+   else {
+      return test;
+   }
+}
+
 void printDirectory(struct ext2_inode *dirInode) {
    char typeBuffer[MAX_STRING_LENGTH];
    char nameBuffer[MAX_STRING_LENGTH];
    uint32_t i = 0;
    struct ext2_dir_entry *entries[MAX_DIR_ENTRIES];
    uint32_t numberOfDirectoryEntries = getDirectories(dirInode, entries);
+   qsort(entries, numberOfDirectoryEntries, sizeof(struct ext2_dir_entry *), compar); 
 
    struct ext2_inode inode;
    struct ext2_dir_entry *entry;
@@ -339,17 +385,18 @@ void printDirectory(struct ext2_inode *dirInode) {
    for (i = 0; i < numberOfDirectoryEntries; i++) {
       entry = entries[i]; 
 
-      findInode(&inode, entry->inode);
+      if (1 && entry->inode) {
+         findInode(&inode, entry->inode);
 
-      getTypeName(inode.i_mode, typeBuffer);
-      strncpy(nameBuffer, entry->name, entry->name_len);
-      nameBuffer[entry->name_len] = '\0';
+         getTypeName(inode.i_mode, typeBuffer);
+         strncpy(nameBuffer, entry->name, entry->name_len);
+         nameBuffer[entry->name_len] = '\0';
 
-      printf("%s\t", nameBuffer);
-      printf("%d\t", inode.i_size);
-      printf("%s", typeBuffer);
-      printf("\n");
-
+         printf("%s\t", nameBuffer);
+         printf("%d\t", inode.i_size);
+         printf("%s", typeBuffer);
+         printf("\n");
+      }
       free(entry);
    }
 }
