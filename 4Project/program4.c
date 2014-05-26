@@ -4,6 +4,13 @@ FILE *fp;
 int inodesPerGroup = 0;
 int sectorsPerGroup = 0;
 
+/*
+ * main program
+ * usage: ext2reader ext2_file_system path
+ *
+ * prints out directory entries aphabetically
+ * or prints out file contents to stdout
+ */
 int main(int argc, char *argv[]) {
    char *ext2Location = 0;
    struct ext2_super_block sb;
@@ -21,6 +28,7 @@ int main(int argc, char *argv[]) {
 
    if ((fp = fopen(ext2Location, "r")) == NULL) {
       perror("main: Error on fopen"); 
+      fclose(fp);
       exit(-1);
    }
 
@@ -34,8 +42,15 @@ int main(int argc, char *argv[]) {
    else {
       printf("Cannot find: %s\n", desiredPath);
    }
+
+   fclose(fp);
 }
 
+/*
+ * Searches the file system for the inode of the desired directory or file
+ *
+ * returns non-zero if found, zero is not found
+ */
 uint8_t findFile(struct ext2_inode *inode, char *desiredPath) {
    char currentPath[MAX_STRING_LENGTH];
    struct ext2_dir_entry *entries[MAX_DIR_ENTRIES];
@@ -58,14 +73,19 @@ uint8_t findFile(struct ext2_inode *inode, char *desiredPath) {
    return found;
 }
 
-uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *currentPath, uint32_t currentPathLength) {
+/*
+ * Recursively explores the file system, looking for the inode
+ * designated by the path
+ */
+uint8_t findFileRecursive(struct ext2_inode *inode,
+      char *desiredPath, char *currentPath, uint32_t currentPathLength) {
    struct ext2_dir_entry *entries[MAX_DIR_ENTRIES];
    uint32_t numberOfDirectoryEntries;
    uint8_t found = 0;
    struct ext2_inode tempInode;
    uint32_t i = 0;
 
-   numberOfDirectoryEntries = getDirectories(inode, entries);
+   numberOfDirectoryEntries = getDirectoryEntries(inode, entries);
 
    for (i = 0; i < numberOfDirectoryEntries; i++) {
       findInode(&tempInode, entries[i]->inode);
@@ -73,17 +93,14 @@ uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *cur
       strncpy(currentPath + currentPathLength + 1, entries[i]->name, entries[i]->name_len);
       currentPath[currentPathLength + 1 + entries[i]->name_len] = '\0';
 
-      /*printf("currentPath: %s\t", currentPath);
-      printf("entry[%d]->inode: %d\n", i, entries[i]->inode);
-      printInode(&tempInode);
-*/
       if (!strcmp(currentPath, desiredPath)) {
          found = 1;
          memcpy(inode, &tempInode, sizeof(struct ext2_inode));
          break;
       }
       else if ((tempInode.i_mode & FILE_MODE_TYPE_MASK) == DIRECTORY &&
-            !strncmp(currentPath, desiredPath, currentPathLength + 1 + entries[i]->name_len) &&
+            !strncmp(currentPath, desiredPath,
+            currentPathLength + 1 + entries[i]->name_len) &&
             findFileRecursive(&tempInode, desiredPath,
             currentPath, currentPathLength + 1 + entries[i]->name_len)) {
          found = 1;
@@ -95,6 +112,10 @@ uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *cur
    return found;
 }
 
+/*
+ * Given an inodeNumber, this function calculated the correct offset
+ * and fills in the inode struct pointed to by inode.
+ */
 void findInode(struct ext2_inode *inode, int inodeNumber) {
    int groupOffset = (inodeNumber - 1) / inodesPerGroup;
    int inodeGroupOffset = (inodeNumber - 1) % inodesPerGroup;
@@ -109,6 +130,10 @@ void findInode(struct ext2_inode *inode, int inodeNumber) {
    return;
 }
 
+/*
+ * This function finds the super block and fills the structure
+ * pointed to by sb
+ */
 void findSuperBlock(struct ext2_super_block *sb) {
    read_data(2 * SUPER_BLOCK_INDEX, 0, (uint8_t *) sb,
          sizeof(struct ext2_super_block));
@@ -116,135 +141,63 @@ void findSuperBlock(struct ext2_super_block *sb) {
    return;
 }
 
-void findGroupDescriptor(struct ext2_group_desc *gd) {
-   read_data(2 * GROUP_DESC_BLOCK_INDEX, 0, (uint8_t *) gd,
-         sizeof(struct ext2_group_desc));
-
-   return;
-}
-
-void printSuperBlockInfo(struct ext2_super_block *sb) {
-   printf("Inodes count: %d\n", sb->s_inodes_count);
-   printf("Blocks count: %d\n", sb->s_blocks_count);
-   printf("Reserved blocks count: %d\n", sb->s_r_blocks_count);
-   printf("Free blocks count: %d\n", sb->s_free_blocks_count);
-   printf("Free inodes count: %d\n", sb->s_free_inodes_count);
-   printf("First Data Block: %d\n", sb->s_first_data_block);
-   printf("Block size: %d\n", sb->s_log_block_size);
-   printf("Fragment size: %d\n", sb->s_log_frag_size);
-   printf("Blocks per group: %d\n", sb->s_blocks_per_group);
-   printf("Fragments per group: %d\n", sb->s_frags_per_group);
-   printf("Inodes per group: %d\n", sb->s_inodes_per_group);
-   printf("Mount time: %d\n", sb->s_mtime);
-   printf("Write time: %d\n", sb->s_wtime);
-   printf("Mount count: %d\n", sb->s_mnt_count);
-   printf("Maximal mount count: %d\n", sb->s_max_mnt_count);
-   printf("Magic signature: %d\n", sb->s_magic);
-   printf("File system state: %d\n", sb->s_state);
-   printf("Behavior when detecting errors: %d\n", sb->s_errors);
-   printf("minor revision level: %d\n", sb->s_minor_rev_level);
-   printf("time of last check: %d\n", sb->s_lastcheck);
-   printf("max. time between checks: %d\n", sb->s_checkinterval);
-   printf("OS: %d\n", sb->s_creator_os);
-   printf("Revision level: %d\n", sb->s_rev_level);
-   printf("Default uid for reserved blocks: %d\n", sb->s_def_resuid);
-   printf("Default gid for reserved blocks: %d\n", sb->s_def_resgid);
-
-   printf("\n");
-
-   return;
-}
-
-void printGroupDescriptorInfo(struct ext2_group_desc *gd) {
-   printf("Blocks bitmap block: %d\n", gd->bg_block_bitmap);
-   printf("Inodes bitmap block: %d\n", gd->bg_inode_bitmap);
-   printf("Inodes table block: %d\n", gd->bg_inode_table);
-   printf("Free blocks count: %d\n", gd->bg_free_blocks_count);
-   printf("Free inodes count: %d\n", gd->bg_free_inodes_count);
-   printf("Directories count: %d\n", gd->bg_used_dirs_count);
-
-   printf("\n");
-
-   return;
-}
-
-void printInode(struct ext2_inode *inode) {
-   struct ext2_dir_entry *entry;
-   int i = 0;
-   printf("File mode: 0x%04X\n", (uint16_t) inode->i_mode);
-   printf("Size in bytes: %d\n", inode->i_size);
-   printf("Access time: %d\n", inode->i_atime);
-   printf("Creation time: %d\n", inode->i_ctime);
-   printf("Modification time: %d\n", inode->i_mtime);
-   printf("Deletion Time: %d\n", inode->i_dtime);
-   printf("Links count: %d\n", inode->i_links_count);
-   printf("Blocks count: %d\n", inode->i_blocks);
-   printf("File flags: %d\n", inode->i_flags);
-   printf("File version (for NFS): %d\n", inode->i_generation);
-
-   printf("\n");
-
-   return;
-}
-
+/*
+ * Calls the correct printing function based on the inode mode
+ */
 void printData(struct ext2_inode *inode) {
    switch (inode->i_mode & FILE_MODE_TYPE_MASK) {
-   case FIFO:
-      printf("Inode Type: FIFO, unimplemented");
-      break;
-   case CHARACTER_DEVICE:
-      printf("Inode Type: CHARACTER_DEVICE, unimplemented");
-      break;
    case DIRECTORY:
       printDirectory(inode); 
-      break;
-   case BLOCK_DEVICE:
-      printf("Inode Type: BLOCK_DEVICE, unimplemented");
       break;
    case REGULAR_FILE:
       printRegularFile(inode);
       break;
-   case SYMBOLIC_LINK:
-      printf("Inode Type: SYMBOLIC_LINK, unimplemented");
-      break;
-   case UNIX_SOCKET:
-      printf("Inode Type: UNIX_SOCKET, unimplemented");
-      break;
    default:
-      printf("Inode Type: unknown, 0x%04X", inode->i_mode & FILE_MODE_TYPE_MASK);
+      printf("Inode Type, 0x%04X, is unsupported",
+            inode->i_mode & FILE_MODE_TYPE_MASK);
+      fclose(fp);
       exit(-1);
       break;
    }
-   
-   printf("\n");
 
    return;
 }
 
+/*
+ * Given a block of data to read from, this function prints
+ * the data to the screen
+ */
 void directBlockFileReading(uint32_t *sizeRemaining, uint32_t blockToReadFrom) {
    uint8_t buffer[BLOCK_SIZE];
 
    read_data(blockToReadFrom * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
 
-   *sizeRemaining -= fwrite(buffer, 1, *sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : *sizeRemaining, stdout);
+   *sizeRemaining -= fwrite(buffer, 1, *sizeRemaining > SECTOR_SIZE ?
+         SECTOR_SIZE : *sizeRemaining, stdout);
 
    if (*sizeRemaining > 0) {
       read_data(blockToReadFrom * SECTORS_PER_BLOCK + 1, 0, buffer, SECTOR_SIZE);
 
-      *sizeRemaining -= fwrite(buffer, 1, *sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : *sizeRemaining, stdout);
+      *sizeRemaining -= fwrite(buffer, 1, *sizeRemaining > SECTOR_SIZE ?
+            SECTOR_SIZE : *sizeRemaining, stdout);
    }
 }
 
+/*
+ * Calls directBlockFileReading after it gets the block number
+ * from either the direct block addresses or indirect block addresses
+ */
 void printRegularFile(struct ext2_inode *inode) {
-   uint32_t indirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
-   uint32_t doubleIndirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
+   uint32_t indirectBlockAddressBuffer[INDIRECT_BLOCKS_PER_ADDRESS];
+   uint32_t doubleIndirectBlockAddressBuffer[INDIRECT_BLOCKS_PER_ADDRESS];
    uint32_t sizeRemaining = inode->i_size;
    uint32_t i = 0;
    uint32_t j = 0;
    uint32_t numberOfBlocksLeft = inode->i_size / BLOCK_SIZE + 1;
 
    if (numberOfBlocksLeft) {
-      for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
+      for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft &&
+            i < EXT2_NDIR_BLOCKS; i++) {
          directBlockFileReading(&sizeRemaining, inode->i_block[i]);
       }
 
@@ -252,10 +205,13 @@ void printRegularFile(struct ext2_inode *inode) {
    }
 
    if (numberOfBlocksLeft) {
-      read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
-      read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+      read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0,
+            (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0,
+            (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
 
-      for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
+      for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft &&
+            i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
          directBlockFileReading(&sizeRemaining, indirectBlockAddressBuffer[i]);
       }
 
@@ -263,22 +219,36 @@ void printRegularFile(struct ext2_inode *inode) {
    }
 
    if (numberOfBlocksLeft) {
-      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
-      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0,
+            (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0,
+            (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE,
+            SECTOR_SIZE);
 
-      for (j = 0; sizeRemaining > 0 && j < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; j++) {
-         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
-         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+      for (j = 0; sizeRemaining > 0 && j < INDIRECT_BLOCKS_PER_ADDRESS; j++) {
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0,
+               (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1,
+               0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE,
+               SECTOR_SIZE);
 
-         for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
-            directBlockFileReading(&sizeRemaining, indirectBlockAddressBuffer[i]);
+         for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft &&
+               i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
+            directBlockFileReading(&sizeRemaining,
+                  indirectBlockAddressBuffer[i]);
          }
          numberOfBlocksLeft -= i;
       }
    }
 }
 
-uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries, uint32_t numberOfDirectoryEntries, uint32_t blockToReadFrom) {
+/*
+ * Given the block of data where the directory
+ * entries are located, this function copies
+ * the data into the entries array
+ */
+uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
+      uint32_t numberOfDirectoryEntries, uint32_t blockToReadFrom) {
    uint8_t buffer[BLOCK_SIZE];
    uint32_t i = 0;
    uint32_t sizeReadAlready = 0;
@@ -286,7 +256,8 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries, uint32_t n
    struct ext2_dir_entry *entry;
 
    read_data(blockToReadFrom * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-   read_data(blockToReadFrom * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+   read_data(blockToReadFrom * SECTORS_PER_BLOCK + 1, 0,
+         buffer + SECTOR_SIZE, SECTOR_SIZE);
 
    for (i = 0; sizeReadAlready < BLOCK_SIZE; i++) {
       entry = (struct ext2_dir_entry *) (buffer + sizeReadAlready);
@@ -302,47 +273,69 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries, uint32_t n
    return i;
 }
 
-// Need to do indirect blocks next
-uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries) {
-   uint32_t indirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
-   uint32_t doubleIndirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
+/*
+ * Calls directBlockDirectoryReading for the different
+ * data blocks for a directory inode
+ */
+uint32_t getDirectoryEntries(struct ext2_inode *dirInode,
+      struct ext2_dir_entry **entries) {
+   uint32_t indirectBlockAddressBuffer[INDIRECT_BLOCKS_PER_ADDRESS];
+   uint32_t doubleIndirectBlockAddressBuffer[INDIRECT_BLOCKS_PER_ADDRESS];
    uint32_t i = 0;
+   uint32_t j = 0;
    uint32_t numberOfDirectoryEntries = 0;
    uint8_t numberOfBlocksLeft = dirInode->i_size / BLOCK_SIZE;
 
    if (numberOfBlocksLeft) {
       for (i = 0; i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
-         numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, dirInode->i_block[i]); 
+         numberOfDirectoryEntries += directBlockDirectoryReading(entries,
+               numberOfDirectoryEntries, dirInode->i_block[i]); 
       }
       numberOfBlocksLeft -= i;
    }
+
    if (numberOfBlocksLeft) {
-
-      for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
-         directBlockFileReading(&sizeRemaining, indirectBlockAddressBuffer[i]);
-      }
-
-      numberOfBlocksLeft -= i;
-   }
-   if (numberOfBlocksLeft) {
-      read_data(dirInode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
-      read_data(dirInode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
-
-      for (i = 0; i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
-         numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, indirectBlockAddressBuffer[i]); 
+      for (i = 0; i < numberOfBlocksLeft &&
+            i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
+         numberOfDirectoryEntries += directBlockDirectoryReading(entries,
+               numberOfDirectoryEntries, indirectBlockAddressBuffer[i]);
       }
       numberOfBlocksLeft -= i;
    }
+
    if (numberOfBlocksLeft) {
-      read_data(dirInode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
-      read_data(dirInode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+      read_data(dirInode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0,
+            (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(dirInode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0,
+            (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
 
-      for (j = 0; j * NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS < numberOfBlocksLeft && j < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; j++) {
-         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
-         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+      for (i = 0; i < numberOfBlocksLeft &&
+            i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
+         numberOfDirectoryEntries += directBlockDirectoryReading(entries,
+               numberOfDirectoryEntries, indirectBlockAddressBuffer[i]); 
+      }
+      numberOfBlocksLeft -= i;
+   }
 
-         for (i = 0; i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
-            numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, indirectBlockAddressBuffer[i]); 
+   if (numberOfBlocksLeft) {
+      read_data(dirInode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0,
+            (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(dirInode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0,
+            (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE,
+            SECTOR_SIZE);
+
+      for (j = 0; j * INDIRECT_BLOCKS_PER_ADDRESS < numberOfBlocksLeft &&
+            j < INDIRECT_BLOCKS_PER_ADDRESS; j++) {
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0,
+               (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1,
+               0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE,
+               SECTOR_SIZE);
+
+         for (i = 0; i < numberOfBlocksLeft &&
+               i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
+            numberOfDirectoryEntries += directBlockDirectoryReading(entries,
+                  numberOfDirectoryEntries, indirectBlockAddressBuffer[i]); 
          }
          numberOfBlocksLeft -= i;
       }
@@ -351,7 +344,13 @@ uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **ent
    return numberOfDirectoryEntries;
 }
 
-int compar(const void *p1, const void *p2) {
+/*
+ * Given two directory entry double pointers, returns -1 if the first
+ * is earlier in the dictionary than the second, 1 for visa-versa, and
+ * 0 if they are the same. "." will always be first and ".." will
+ * always be second
+ */
+int compare(const void *p1, const void *p2) {
    struct ext2_dir_entry *entry1 = *(struct ext2_dir_entry **) p1;
    struct ext2_dir_entry *entry2 = *(struct ext2_dir_entry **) p2;
 
@@ -397,13 +396,21 @@ int compar(const void *p1, const void *p2) {
    }
 }
 
+/*
+ * Gets the contents of the directory, sorts them alphabetically,
+ * and then prints the name, size, and type to the screen.
+ * Type can wither be 'F' for regular file or 'd' for directory.
+ * Size is 0 if the file is a directory. 
+ */
 void printDirectory(struct ext2_inode *dirInode) {
    char typeBuffer[MAX_STRING_LENGTH];
    char nameBuffer[MAX_STRING_LENGTH];
    uint32_t i = 0;
    struct ext2_dir_entry *entries[MAX_DIR_ENTRIES];
-   uint32_t numberOfDirectoryEntries = getDirectories(dirInode, entries);
-   qsort(entries, numberOfDirectoryEntries, sizeof(struct ext2_dir_entry *), compar); 
+   uint32_t numberOfDirectoryEntries =
+      getDirectoryEntries(dirInode, entries);
+   qsort(entries, numberOfDirectoryEntries,
+         sizeof(struct ext2_dir_entry *), compare); 
 
    struct ext2_inode inode;
    struct ext2_dir_entry *entry;
@@ -429,58 +436,36 @@ void printDirectory(struct ext2_inode *dirInode) {
    }
 }
 
-// returns the file type and fills the buffer with a string
-// representing the file type
+/* 
+ * Returns the file type and fills the buffer with a string
+ * representing the file type
+ */
 uint16_t getTypeName(uint16_t mode, char *typeBuffer) {
    switch (mode & FILE_MODE_TYPE_MASK) {
-   case FIFO:
-      strcpy(typeBuffer, "FIFO");
-      break;
-   case CHARACTER_DEVICE:
-      strcpy(typeBuffer, "Character Device");
-      break;
    case DIRECTORY:
       strcpy(typeBuffer, "D");
-      break;
-   case BLOCK_DEVICE:
-      strcpy(typeBuffer, "Block Device");
       break;
    case REGULAR_FILE:
       strcpy(typeBuffer, "F");
       break;
-   case SYMBOLIC_LINK:
-      strcpy(typeBuffer, "Symbolic Link");
-      break;
-   case UNIX_SOCKET:
-      strcpy(typeBuffer, "Unix Socket");
-      break;
    default:
-      strcpy(typeBuffer, "Unknown");
+      strcpy(typeBuffer, "Unsupported type");
       break;
    }
    return mode & FILE_MODE_TYPE_MASK;
 }
 
-//the bloc argument is in terms of SD card 512 byte sectors
+/* 
+ * Reads the sectors from the file system.
+ * The block argument is in terms of SD card 512 byte sectors
+ */
 void read_data(uint32_t block, uint16_t offset, uint8_t* data, uint16_t size) {
    if (offset > 511) {
       printf ("Offset greater than 511.\n");
+      fclose(fp);
       exit(0);
    }   
 
    fseek(fp,block*512 + offset,SEEK_SET);
    fread(data,size,1,fp);
-}
-
-void printDirectoryEntry(struct ext2_dir_entry *entry) {
-   char name[MAX_STRING_LENGTH];
-   strncpy(name, entry->name, entry->name_len);
-   name[entry->name_len] = '\0';
-
-   printf("Inode number: %d\n", entry->inode);
-   printf("Directory entry length: %d\n", entry->rec_len);
-   printf("Name length: %d\n", entry->name_len);
-   printf("File name, up to EXT2_NAME_LEN: %s\n", name);
-
-   return;
 }

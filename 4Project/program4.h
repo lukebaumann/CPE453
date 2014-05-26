@@ -8,7 +8,7 @@
 #include <string.h>
 #include "ext2.h"
 
-#define NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS 256
+#define INDIRECT_BLOCKS_PER_ADDRESS 256
 #define MAX_STRING_LENGTH 256
 #define MAX_DIRECTORY_ENTRIES 256
 #define SECTORS_PER_BLOCK 2
@@ -30,20 +30,21 @@
 #define SYMBOLIC_LINK 0xA000
 #define UNIX_SOCKET 0xC000
 
-void findInode(struct ext2_inode *inode, int inodeNumber);
 uint8_t findFile(struct ext2_inode *inode, char *desiredPath);
-uint8_t findFileRecursive(struct ext2_inode *inode, char *desiredPath, char *currentPath, uint32_t currentPathLength);
+uint8_t findFileRecursive(struct ext2_inode *inode,
+      char *desiredPath, char *currentPath, uint32_t currentPathLength);
+void findInode(struct ext2_inode *inode, int inodeNumber);
 void findSuperBlock(struct ext2_super_block *sb);
-void findGroupDescriptor(struct ext2_group_desc *gd);
-void printSuperBlockInfo(struct ext2_super_block *sb);
-void printGroupDescriptorInfo(struct ext2_group_desc *gd);
-void printInode(struct ext2_inode *inode);
-void printRegularFile(struct ext2_inode *inode);
-uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries);
-void printDirectory(struct ext2_inode *dirInode);
 void printData(struct ext2_inode *inode);
+void directBlockFileReading(uint32_t *sizeRemaining, uint32_t blockToReadFrom);
+void printRegularFile(struct ext2_inode *inode);
+uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
+      uint32_t numberOfDirectoryEntries, uint32_t blockToReadFrom);
+uint32_t getDirectoryEntries(struct ext2_inode *dirInode,
+      struct ext2_dir_entry **entries);
+int compare(const void *p1, const void *p2);
+void printDirectory(struct ext2_inode *dirInode);
 uint16_t getTypeName(uint16_t mode, char *typeBuffer);
 void read_data(uint32_t block, uint16_t offset, uint8_t* data, uint16_t size);
-void printDirectoryEntry(struct ext2_dir_entry *entry);
 
 #endif
