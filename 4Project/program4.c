@@ -304,7 +304,8 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries, uint32_t n
 
 // Need to do indirect blocks next
 uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries) {
-   uint8_t buffer[BLOCK_SIZE];
+   uint32_t indirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
+   uint32_t doubleIndirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
    uint32_t i = 0;
    uint32_t numberOfDirectoryEntries = 0;
    uint8_t numberOfBlocksLeft = dirInode->i_size / BLOCK_SIZE;
@@ -316,16 +317,36 @@ uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **ent
       numberOfBlocksLeft -= i;
    }
    if (numberOfBlocksLeft) {
-      for (i = 0; i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
-         numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, dirInode->i_block[i]); 
+
+      for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
+         directBlockFileReading(&sizeRemaining, indirectBlockAddressBuffer[i]);
       }
+
+      numberOfBlocksLeft -= i;
    }
    if (numberOfBlocksLeft) {
-      for (i = 0; i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
-         numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, dirInode->i_block[i]); 
+      read_data(dirInode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(dirInode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+
+      for (i = 0; i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
+         numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, indirectBlockAddressBuffer[i]); 
+      }
+      numberOfBlocksLeft -= i;
+   }
+   if (numberOfBlocksLeft) {
+      read_data(dirInode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(dirInode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+
+      for (j = 0; j * NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS < numberOfBlocksLeft && j < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; j++) {
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
+
+         for (i = 0; i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
+            numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, indirectBlockAddressBuffer[i]); 
+         }
+         numberOfBlocksLeft -= i;
       }
    }
-
 
    return numberOfDirectoryEntries;
 }
