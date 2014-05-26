@@ -221,49 +221,48 @@ void printData(struct ext2_inode *inode) {
    return;
 }
 
-void printRegularFile(struct ext2_inode *inode) {
+void directBlockFileReading(uint32_t *sizeRemaining, uint32_t blockToReadFrom) {
    uint8_t buffer[BLOCK_SIZE];
+
+   read_data(blockToReadFrom * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
+
+   *sizeRemaining -= fwrite(buffer, 1, *sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : *sizeRemaining, stdout);
+
+   if (*sizeRemaining > 0) {
+      read_data(blockToReadFrom * SECTORS_PER_BLOCK + 1, 0, buffer, SECTOR_SIZE);
+
+      *sizeRemaining -= fwrite(buffer, 1, *sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : *sizeRemaining, stdout);
+   }
+}
+
+void printRegularFile(struct ext2_inode *inode) {
    uint32_t indirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
    uint32_t doubleIndirectBlockAddressBuffer[NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS];
    uint32_t sizeRemaining = inode->i_size;
    uint32_t i = 0;
    uint32_t j = 0;
-   uint32_t numberOfBlocks = inode->i_size / BLOCK_SIZE + 1;
+   uint32_t numberOfBlocksLeft = inode->i_size / BLOCK_SIZE + 1;
 
-   if (numberOfBlocks) {
-      for (i = 0; sizeRemaining > 0 && i < numberOfBlocks && i < EXT2_NDIR_BLOCKS; i++) {
-         read_data(inode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-
-         sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
-
-         if (sizeRemaining > 0) {
-            read_data(inode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer, SECTOR_SIZE);
-
-            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
-         }
+   if (numberOfBlocksLeft) {
+      for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
+         directBlockFileReading(&sizeRemaining, inode->i_block[i]);
       }
-      numberOfBlocks -= i;
+
+      numberOfBlocksLeft -= i;
    }
 
-   if (numberOfBlocks) {
+   if (numberOfBlocksLeft) {
       read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
       read_data(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
 
-      for (i = 0; sizeRemaining > 0 && i < numberOfBlocks && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
-         read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-
-         sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
-
-         if (sizeRemaining > 0) {
-            read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK + 1, 0, buffer, SECTOR_SIZE);
-
-            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
-         }
+      for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
+         directBlockFileReading(&sizeRemaining, indirectBlockAddressBuffer[i]);
       }
-      numberOfBlocks -= i;
+
+      numberOfBlocksLeft -= i;
    }
 
-   if (numberOfBlocks) {
+   if (numberOfBlocksLeft) {
       read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0, (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
       read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
 
@@ -271,55 +270,62 @@ void printRegularFile(struct ext2_inode *inode) {
          read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0, (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
          read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1, 0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
 
-         for (i = 0; sizeRemaining > 0 && i < numberOfBlocks && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
-            read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-
-            sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
-
-            if (sizeRemaining > 0) {
-               read_data(indirectBlockAddressBuffer[i] * SECTORS_PER_BLOCK + 1, 0, buffer, SECTOR_SIZE);
-
-               sizeRemaining -= fwrite(buffer, 1, sizeRemaining > SECTOR_SIZE ? SECTOR_SIZE : sizeRemaining, stdout);
-            }
+         for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft && i < NUMBER_OF_INDIRECT_BLOCKS_PER_INDIRECT_BLOCK_ADDRESS; i++) {
+            directBlockFileReading(&sizeRemaining, indirectBlockAddressBuffer[i]);
          }
-         numberOfBlocks -= i;
+         numberOfBlocksLeft -= i;
       }
    }
+}
+
+uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries, uint32_t numberOfDirectoryEntries, uint32_t blockToReadFrom) {
+   uint8_t buffer[BLOCK_SIZE];
+   uint32_t i = 0;
+   uint32_t sizeReadAlready = 0;
+   uint32_t entryLength = 0;
+   struct ext2_dir_entry *entry;
+
+   read_data(blockToReadFrom * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
+   read_data(blockToReadFrom * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
+
+   for (i = 0; sizeReadAlready < BLOCK_SIZE; i++) {
+      entry = (struct ext2_dir_entry *) (buffer + sizeReadAlready);
+      entryLength = entry->rec_len;
+
+      entries[numberOfDirectoryEntries + i] = malloc(entryLength);
+
+      memcpy(entries[numberOfDirectoryEntries + i], entry, entryLength);
+
+      sizeReadAlready += entryLength;
+   }
+
+   return i;
 }
 
 // Need to do indirect blocks next
 uint32_t getDirectories(struct ext2_inode *dirInode, struct ext2_dir_entry **entries) {
    uint8_t buffer[BLOCK_SIZE];
-   uint32_t sizeReadAlready = 0;
    uint32_t i = 0;
    uint32_t numberOfDirectoryEntries = 0;
-   struct ext2_dir_entry *entry;
-   uint32_t entryLength = 0;
-   uint32_t nameLength = 0;
+   uint8_t numberOfBlocksLeft = dirInode->i_size / BLOCK_SIZE;
 
-   uint8_t numberOfBlocks = dirInode->i_size / BLOCK_SIZE;
-   uint8_t numberOfDirectBlocks = numberOfBlocks > EXT2_NDIR_BLOCKS ? EXT2_NDIR_BLOCKS : numberOfBlocks;
-
-   for (i = 0; i < numberOfDirectBlocks; i++) {
-      //printf("dirInode->i_block[%d]: %d\n", i, dirInode->i_block[i]); 
-
-      sizeReadAlready = 0;
-      read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-      read_data(dirInode->i_block[i] * SECTORS_PER_BLOCK + 1, 0, buffer + SECTOR_SIZE, SECTOR_SIZE);
-
-      for (; sizeReadAlready < BLOCK_SIZE; numberOfDirectoryEntries++) {
-         entry = (struct ext2_dir_entry *) (buffer + sizeReadAlready);
-         entryLength = entry->rec_len;
-
-         entries[numberOfDirectoryEntries] = malloc(entryLength);
-
-         memcpy(entries[numberOfDirectoryEntries], entry, entryLength);
-
-         sizeReadAlready += entryLength;
-         //printf("sizeReadAlready: %d\n", sizeReadAlready);
-         //printf("dirInode->size: %d\n", dirInode->i_size);
-      } 
+   if (numberOfBlocksLeft) {
+      for (i = 0; i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
+         numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, dirInode->i_block[i]); 
+      }
+      numberOfBlocksLeft -= i;
    }
+   if (numberOfBlocksLeft) {
+      for (i = 0; i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
+         numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, dirInode->i_block[i]); 
+      }
+   }
+   if (numberOfBlocksLeft) {
+      for (i = 0; i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
+         numberOfDirectoryEntries += directBlockDirectoryReading(entries, numberOfDirectoryEntries, dirInode->i_block[i]); 
+      }
+   }
+
 
    return numberOfDirectoryEntries;
 }
@@ -393,7 +399,8 @@ void printDirectory(struct ext2_inode *dirInode) {
          nameBuffer[entry->name_len] = '\0';
 
          printf("%s\t", nameBuffer);
-         printf("%d\t", inode.i_size);
+         printf("%d\t", (inode.i_mode & FILE_MODE_TYPE_MASK) == DIRECTORY ?
+               0 : inode.i_size);
          printf("%s", typeBuffer);
          printf("\n");
       }
@@ -412,13 +419,13 @@ uint16_t getTypeName(uint16_t mode, char *typeBuffer) {
       strcpy(typeBuffer, "Character Device");
       break;
    case DIRECTORY:
-      strcpy(typeBuffer, "Directory");
+      strcpy(typeBuffer, "D");
       break;
    case BLOCK_DEVICE:
       strcpy(typeBuffer, "Block Device");
       break;
    case REGULAR_FILE:
-      strcpy(typeBuffer, "Regular File");
+      strcpy(typeBuffer, "F");
       break;
    case SYMBOLIC_LINK:
       strcpy(typeBuffer, "Symbolic Link");
