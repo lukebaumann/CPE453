@@ -1,0 +1,6 @@
+*.ext2
+*.o
+*.out
+program5
+*.elf
+*.hex

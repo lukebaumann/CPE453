@@ -48,6 +48,8 @@ void testHex32(uint32_t tested);
 #define DEFAULT_CONSUME_TIME 100
 #define DEFAULT_PRODUCE_TIME 100
 #define STAT_DISPLAY_HEIGHT 11
+#define NUMBER_OF_BUFFERS 2
+#define BUFFER_SIZE 256
 
 // program3.c
 void main();

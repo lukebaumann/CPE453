@@ -7,13 +7,14 @@
 
 #include "globals.h"
 #include "os.h"
+#include "SdReader.h"
 
 extern volatile struct system_t *system;
 extern volatile uint32_t tenMillisecondCounter;
 extern volatile uint32_t oneSecondCounter;
 
-static struct semaphore_t bufferSemaphore;
-static struct mutex_t bufferMutex;
+static struct mutex_t buffer1Mutex;
+static struct mutex_t buffer2Mutex;
 
 static uint8_t *buffer[NUMBER_OF_BUFFERS];
 static uint8_t currentBuffer = 0;
@@ -25,6 +26,12 @@ static uint8_t readBufferIndex = 0;
  * Ivokes the operating system and is the idle thread.
  */
 void main() {
+   uint8_t sd_card_status;
+   sd_card_status = sdInit(0);   //initialize the card with fast clock
+                                 //if this does not work, try sdInit(1)
+                                 //for a slower clock
+   start_audio_pwm();
+
    uint8_t i = 0;
    for (i = 0; i < NUMBER_OF_BUFFERS; i++) {
       buffer[i] = malloc(BUFFER_SIZE);
@@ -36,9 +43,9 @@ void main() {
    create_thread((uint16_t) playback, 0, 50);
    create_thread((uint16_t) reader, 0, 51);
    create_thread((uint16_t) display_stats, 0, 52);
-   create_thread((uint16_t) blink, 0, 53);
 
-   sem_init(&bufferSemaphore, 1);
+   mutex_init(&buffer1Mutex);
+   mutex_init(&buffer2Mutex);
 
    clear_screen();
    os_start();

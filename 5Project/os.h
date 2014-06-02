@@ -124,7 +124,6 @@ ISR(TIMER0_COMPA_vect);
 void switchNextThread();
 void switchThreads(uint8_t nextThreadId);
 uint16_t getProgramCounter();
-void start_system_timer();
 __attribute__((naked)) void context_switch(uint16_t* newStackPointer, uint16_t* oldStackPointer);
 __attribute__((naked)) void thread_start(void);
 uint8_t get_next_thread(void);
@@ -149,5 +148,9 @@ void sem_init(struct semaphore_t* s, int8_t value);
 void sem_wait(struct semaphore_t* s);
 void sem_signal(struct semaphore_t* s);
 void sem_signal_swap(struct semaphore_t* s);
+
+// from os_util.c
+void start_audio_pwm();
+void start_system_timer();
 
 #endif
