@@ -17,8 +17,8 @@ static struct mutex_t buffer1Mutex;
 static struct mutex_t buffer2Mutex;
 
 static uint8_t *buffer[NUMBER_OF_BUFFERS];
-static uint8_t currentBuffer = 0;
-static uint8_t currentBufferIndex = 0;
+static uint8_t playBuffer = 0;
+uint8_t playBufferIndex = 0;
 static uint8_t readBuffer = 0;
 static uint8_t readBufferIndex = 0;
 
@@ -39,6 +39,12 @@ void main() {
 
    serial_init();
    os_init();
+   if (!sdInit(0))
+      if (!sdInit(1)) {
+         printf("Failed to initialize the SD card.");
+         exit(-1);
+      }
+
 
    create_thread((uint16_t) playback, 0, 50);
    create_thread((uint16_t) reader, 0, 51);
@@ -52,23 +58,6 @@ void main() {
    sei();
 
    while(1) {}
-}
-
-void consumer() {
-   while(1) {
-      thread_sleep(consumeTime);
-
-      if (bufferSize > 0) {
-
-         mutex_lock(&bufferMutex);
-         sem_wait(&bufferSemaphore);
-
-         bufferSize--;
-
-         sem_signal(&bufferSemaphore);
-         mutex_unlock(&bufferMutex);
-      }
-   }
 }
 
 /**
@@ -204,60 +193,11 @@ void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
 }
 
 /**
- * Turns LED on if it is producing, off otherwise 
+ * Writes a byte to the digital output pin (3) and then yields.
  */
-void blink(void) {
+ void playback(void) {
    while (1) {
-      if (bufferSize < MAX_BUFFER_SIZE && produceTime > 0) {
-         led_on();
-      }
-      else {
-         led_off();
-      }
-
-      thread_sleep(1);
+      OCR2B = buffer[playBuffer][playBufferIndex];
+      yield();
    }
-}
-
-/**
- * Turns LED on
- */
-void led_on() {
-   //Set data direction to OUTPUT
-   //Clear Z high byte
-   __asm__ volatile ("clr r31");
-   //Set Z low byte to DDRB
-   __asm__ volatile ("ldi r30,0x24");
-   //Set 0x20 (DDRB bit 5 to 1)
-   __asm__ volatile ("ldi r18,0x20");
-   //Write 0x20 to location 0x24 (set LED pin as output)
-   __asm__ volatile ("st Z, r18");
-
-   //Set LED to ON
-   //Set Z low byte to LED register
-   __asm__ volatile ("ldi r30,0x25");
-   
-   __asm__ volatile ("ldi r18,0x20");
-   __asm__ volatile ("st Z, r18");
-}
-
-/**
- * Turns LED off
- */
-void led_off() {
-   //Set data direction to OUTPUT
-   //Clear Z high byte
-   __asm__ volatile ("clr r31");
-   //Set Z low byte to DDRB
-   __asm__ volatile ("ldi r30,0x24");
-   //Set 0x20 (DDRB bit 5 to 1)
-   __asm__ volatile ("ldi r18,0x20");
-   //Write 0x20 to location 0x24 (set LED pin as output)
-   __asm__ volatile ("st Z, r18");
-
-   //Set LED to OFF
-   __asm__ volatile ("ldi r30,0x25");
-   
-   __asm__ volatile ("ldi r18,0x00");
-   __asm__ volatile ("st Z, r18");
-}
+ }

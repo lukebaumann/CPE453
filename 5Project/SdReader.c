@@ -268,7 +268,7 @@ uint8_t sdInit(uint8_t slow) {
  * \param[out] dst Pointer to the location that will receive the data. 
  * \param[in] count Number of bytes to read
  * \return The value one, true, is returned for success and
- * the value zero, false, is returned for failure.      
+ * the value zero, false, is returned for failure.
  */
 uint8_t sdReadData(uint32_t block,
       uint16_t offset, uint8_t *dst, uint16_t count) {

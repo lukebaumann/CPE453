@@ -12,6 +12,9 @@ volatile struct system_t *system;
 volatile uint32_t tenMillisecondCounter = 0;
 volatile uint32_t oneSecondCounter = 0;
 
+extern uint8_t playBufferIndex;
+extern static uint8_t playBuffer;
+
 /**
  * Initializes the operating system. Reserves space from the heap for the
  * system data structure and initializes the system data structure.
@@ -102,6 +105,12 @@ ISR(TIMER0_COMPA_vect) {
                  "r25", "r26", "r27", "r30", "r31");                        
 
    tenMillisecondCounter++;
+   
+   if (!++playBufferIndex) {
+      playBuffer = readBuffer;
+      readBuffer = (readBuffer + 1) % NUMBER_OF_BUFFERS;
+   }
+
    notifySleepingThreads();
    switchNextThread();
 }
