@@ -22,6 +22,9 @@ uint8_t playBufferIndex = 0;
 static uint8_t readBuffer = 0;
 static uint8_t readBufferIndex = 0;
 
+static uint32_t block = 0;
+static uint8_t offset = 0;
+
 /**
  * Ivokes the operating system and is the idle thread.
  */
@@ -201,3 +204,16 @@ void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
       yield();
    }
  }
+
+ /**
+  *
+  */
+void reader(void) {
+   while (1) {
+      if (readComplete)
+         yield();
+      else {
+         
+      }
+   }
+}

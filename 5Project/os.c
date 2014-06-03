@@ -112,7 +112,8 @@ ISR(TIMER0_COMPA_vect) {
    }
 
    notifySleepingThreads();
-   switchNextThread();
+   //switchNextThread();
+   switchThreads(0);
 }
 
 /**
@@ -322,39 +323,41 @@ void createMainThread() {
  * @return The thread following the thread that is currently executing.
  */
 uint8_t get_next_thread(void) {
-   int i = 0;
+   // int i = 0;
 
-   // If the main thread is the current thread and no thread is ready yet,
-   // the main thread should run again
-   if (system->currentThreadId == MAX_NUMBER_OF_THREADS) {
-      for (i = 0; i < system->numberOfThreads; i++) {
-         if (system->threads[i].state == THREAD_READY) {
-            return i;
-         }
-      }
+   // // If the main thread is the current thread and no thread is ready yet,
+   // // the main thread should run again
+   // if (system->currentThreadId == MAX_NUMBER_OF_THREADS) {
+   //    for (i = 0; i < system->numberOfThreads; i++) {
+   //       if (system->threads[i].state == THREAD_READY) {
+   //          return i;
+   //       }
+   //    }
 
-      return MAX_NUMBER_OF_THREADS;
-   }
+   //    return MAX_NUMBER_OF_THREADS;
+   // }
 
-   else {
-      // Otherwise, if a thread is ready, return its index
-      for (i = (system->currentThreadId + 1) % system->numberOfThreads;
-       i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
-         if (system->threads[i].state == THREAD_READY) {
-            return i;
-         }
-      }
+   // else {
+   //    // Otherwise, if a thread is ready, return its index
+   //    for (i = (system->currentThreadId + 1) % system->numberOfThreads;
+   //     i != system->currentThreadId; i = (i + 1) % system->numberOfThreads) {
+   //       if (system->threads[i].state == THREAD_READY) {
+   //          return i;
+   //       }
+   //    }
       
-      // Need to check to make sure that the current thread was not put into
-      // a waiting or sleeping state. It would not have been put into a ready
-      // state yet because that happens in switchThreads()
-      if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
-         return system->currentThreadId;
-      }
-      else {
-         return MAX_NUMBER_OF_THREADS;
-      }
-   }
+   //    // Need to check to make sure that the current thread was not put into
+   //    // a waiting or sleeping state. It would not have been put into a ready
+   //    // state yet because that happens in switchThreads()
+   //    if (system->threads[system->currentThreadId].state == THREAD_RUNNING) {
+   //       return system->currentThreadId;
+   //    }
+   //    else {
+   //       return MAX_NUMBER_OF_THREADS;
+   //    }
+   // }
+   return system->currentThreadId == MAX_NUMBER_OF_THREADS - 1 ?
+      system->currentThreadId : system->currentThreadId + 1;
 }
 
 /**
