@@ -44,7 +44,6 @@ void main() {
    os_init();
    if (!sdInit(0))
       if (!sdInit(1)) {
-         printf("Failed to initialize the SD card.");
          exit(-1);
       }
 
@@ -198,7 +197,7 @@ void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
 /**
  * Writes a byte to the digital output pin (3) and then yields.
  */
- void playback(void) {
+void playback(void) {
    while (1) {
       OCR2B = buffer[playBuffer][playBufferIndex];
       yield();

@@ -51,16 +51,12 @@ void testHex32(uint32_t tested);
 #define NUMBER_OF_BUFFERS 2
 #define BUFFER_SIZE 256
 
-// program3.c
+// program5.c
 void main();
-void led_on();
-void led_off();
-void blink();
+void handleKeys();
 void display_stats();
 void printThreadStats(uint8_t threadIndex, uint8_t threadCount);
-void display_bounded_buffer();
-void handleKeys();
-void consumer();
-void producer();
+void playback(void);
+void reader(void);
 
 #endif
