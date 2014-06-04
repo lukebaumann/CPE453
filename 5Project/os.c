@@ -13,7 +13,9 @@ volatile uint32_t tenMillisecondCounter = 0;
 volatile uint32_t oneSecondCounter = 0;
 
 extern uint8_t playBufferIndex;
-extern static uint8_t playBuffer;
+extern uint8_t readBufferIndex;
+extern uint8_t playBuffer;
+extern uint8_t readBuffer;
 
 /**
  * Initializes the operating system. Reserves space from the heap for the

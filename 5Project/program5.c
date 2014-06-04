@@ -17,10 +17,11 @@ static struct mutex_t buffer1Mutex;
 static struct mutex_t buffer2Mutex;
 
 static uint8_t *buffer[NUMBER_OF_BUFFERS];
-static uint8_t playBuffer = 0;
+uint8_t playBuffer = 0;
 uint8_t playBufferIndex = 0;
-static uint8_t readBuffer = 0;
-static uint8_t readBufferIndex = 0;
+uint8_t readBuffer = 0;
+uint8_t readBufferIndex = 0;
+static uint8_t readComplete = 0;
 
 static uint32_t block = 0;
 static uint8_t offset = 0;
@@ -72,23 +73,9 @@ void handleKeys() {
    uint8_t key = read_byte();
 
    if (key != 255) {
-      if (key == 'a') {
-         produceTime++;
+      if (key == 'n') {
       }
-      else if (key == 'z' && produceTime > 0) {
-         produceTime--;
-      }
-      else if (key == 'k') {
-         consumeTime++;
-      }
-      else if (key == 'm' && consumeTime > 0) {
-         consumeTime--;
-      }
-      else if (key == 'e') {
-         bufferSize = 0;
-      }
-      else if (key == 'f') {
-         bufferSize = MAX_BUFFER_SIZE;
+      else if (key == 'p') {
       }
    }
 }
