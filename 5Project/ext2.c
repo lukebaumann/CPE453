@@ -4,14 +4,16 @@
 int inodesPerGroup = 0;
 int sectorsPerGroup = 0;
 
-void ext2_init() {
+void ext2_init(struct ext2_dir_entry **entries) {
    struct ext2_super_block sb;
 
    findSuperBlock(&sb);
    inodesPerGroup = sb.s_inodes_per_group;
    sectorsPerGroup = 2 * sb.s_blocks_per_group;
 
+   getMusicDirectoryEntries(entries);
 }
+
 void findSuperBlock(struct ext2_super_block *sb) {
    sdReadData(2 * SUPER_BLOCK_INDEX, 0, (uint8_t *) sb,
          sizeof(struct ext2_super_block));
@@ -19,13 +21,34 @@ void findSuperBlock(struct ext2_super_block *sb) {
    return;
 }
 
+/*
+ * Given an inodeNumber, this function calculated the correct offset
+ * and fills in the inode struct pointed to by inode.
+ */
+void findInode(struct ext2_inode *inode, int inodeNumber) {
+   int groupOffset = (inodeNumber - 1) / inodesPerGroup;
+   int inodeGroupOffset = (inodeNumber - 1) % inodesPerGroup;
+   int sectorOffset = (inodeGroupOffset * EXT2_GOOD_OLD_INODE_SIZE) / SECTOR_SIZE;
+   int inodeSectorOffset = inodeGroupOffset % (SECTOR_SIZE / EXT2_GOOD_OLD_INODE_SIZE);
+
+   read_data(groupOffset * sectorsPerGroup + SECTORS_PER_BLOCK *
+         INODE_TABLE_BLOCK_INDEX + sectorOffset,
+         inodeSectorOffset * sizeof(struct ext2_inode),
+         (uint8_t *) inode, sizeof(struct ext2_inode));
+
+   return;
+}
+
 void getMusicDirectoryEntries(struct ext2_inode *dirInode,
       struct ext2_dir_entry **entries) {
+   struct ext2_inode dirInode;
+   findInode(&dirInode, ROOT_DIR_INODE_OFFSET);
+
    char typeBuffer[MAX_STRING_LENGTH];
    char nameBuffer[MAX_STRING_LENGTH];
    uint32_t i = 0;
    uint32_t numberOfMusicEntries =
-      getDirectoryEntries(dirInode, entries);
+      getDirectoryEntries(&dirInode, entries);
 
    qsort(entries, numberOfMusicEntries,
          sizeof(struct ext2_dir_entry *), compare); 
@@ -164,3 +187,4 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
 
    return filesInDirectory;
 }
+
