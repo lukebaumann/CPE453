@@ -30,23 +30,21 @@ static uint8_t offset = 0;
  * Ivokes the operating system and is the idle thread.
  */
 void main() {
-   uint8_t sd_card_status;
-   sd_card_status = sdInit(0);   //initialize the card with fast clock
-                                 //if this does not work, try sdInit(1)
-                                 //for a slower clock
-   start_audio_pwm();
-
    uint8_t i = 0;
    for (i = 0; i < NUMBER_OF_BUFFERS; i++) {
       buffer[i] = malloc(BUFFER_SIZE);
    }
 
-   serial_init();
-   os_init();
-   if (!sdInit(0))
+   if (!sdInit(0)) {
       if (!sdInit(1)) {
          exit(-1);
       }
+   }
+
+   start_audio_pwm();
+
+   serial_init();
+   os_init();
 
 
    create_thread((uint16_t) playback, 0, 50);
@@ -185,8 +183,21 @@ void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
  * Writes a byte to the digital output pin (3) and then yields.
  */
 void playback(void) {
+   struct mutex_t *playMutex; 
    while (1) {
+      if (playBuffer == 0) {
+         playMutex = &buffer1Mutex;
+      }
+      else if (playBuffer == 1) {
+         playMutex = &buffer2Mutex;
+      }
+
+      mutex_lock(playMutex);
+
       OCR2B = buffer[playBuffer][playBufferIndex];
+
+      mutex_unlock(playMutex);
+
       yield();
    }
  }
@@ -195,11 +206,24 @@ void playback(void) {
   *
   */
 void reader(void) {
+   struct mutex_t *readMutex; 
    while (1) {
       if (readComplete)
          yield();
       else {
-         
+         if (readBuffer == 0) {
+            readMutex = &buffer1Mutex;
+         }
+         else if (readBuffer == 1) {
+            readMutex = &buffer2Mutex;
+         }
+
+         mutex_lock(readMutex);
+
+
+         // Do read here
+
+         mutex_unlock(readMutex);
       }
    }
 }
