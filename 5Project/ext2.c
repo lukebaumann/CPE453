@@ -1,8 +1,5 @@
-
-
-// These functions will go in their own file later but for now will be right here
-int inodesPerGroup = 0;
-int sectorsPerGroup = 0;
+static uint32_t inodesPerGroup = 0;
+static uint32_t sectorsPerGroup = 0;
 
 void ext2_init(struct ext2_dir_entry **entries) {
    struct ext2_super_block sb;
@@ -12,6 +9,86 @@ void ext2_init(struct ext2_dir_entry **entries) {
    sectorsPerGroup = 2 * sb.s_blocks_per_group;
 
    getMusicDirectoryEntries(entries);
+}
+
+/*
+ * Calls directBlockFileReading after it gets the block number
+ * from either the direct block addresses or indirect block addresses
+ */
+uint32_t getNextBlockNumber(struct ext2_inode *inode) {
+   static enum STATE state = DIRECT;
+   static struct ext2_inode *currentInode = NULL;
+   static uint32_t sizeRemaining = 0;
+   static uint32_t numberOfBlocksLeft = 0; 
+
+   if (currentInode == NULL || currentInode != inode) {
+      state = DIRECT;
+      currentInode = inode;
+      sizeRemaining = currentInode->i_size;
+      numberOfBlocksLeft = currentInode->i_size / BLOCK_SIZE + 1;
+      blocksRead = 0;
+   }
+   else {
+      if (blocksRead == EXT2_NDIR_BLOCKS) {
+         state = INDIRECT;
+      }
+      else if (blocksRead == EXT2_NDIR_BLOCK + INDIRECT_BLOCKS_PER_ADDRESS) {
+         state = DOUBLE_INDIRECT;
+      }
+   }
+
+   if (numberOfBlocksLeft) {
+      return 0;
+   }
+
+   if (state == DIRECT) {
+      blockNumber = inode->i_block[blocksRead];
+   }
+
+   else if (state == INDIRECT) {
+      blockAddressOffset = blocksRead - EXT2_NDIR_BLOCKS;
+
+      if (blockAddressOffset * sizeof(uint32_t) < SECTOR_SIZE) {
+         sdReadData(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK,
+               blockAddressOffset * sizeof(uint32_t),
+               (uint8_t *) &blockNumber, sizeof(uint32_t));
+      }
+      else {
+         sdReadData(inode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1,
+               blockAddressOffset * sizeof(uint32_t) - SECTOR_SIZE,
+               (uint8_t *) &blockNumber, sizeof(uint32_t));
+      }
+   }
+
+   if (numberOfBlocksLeft) {
+      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0,
+            (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
+      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0,
+            (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE,
+            SECTOR_SIZE);
+
+      for (j = 0; sizeRemaining > 0 && j < INDIRECT_BLOCKS_PER_ADDRESS; j++) {
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0,
+               (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
+         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1,
+               0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE,
+               SECTOR_SIZE);
+
+         for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft &&
+               i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
+            directBlockFileReading(&sizeRemaining,
+                  indirectBlockAddressBuffer[i]);
+         }
+         numberOfBlocksLeft -= i;
+      }
+   }
+
+
+
+
+
+   blocksRead++;
+   numberOfBlocksLeft--;
 }
 
 void findSuperBlock(struct ext2_super_block *sb) {
@@ -79,12 +156,10 @@ int compare(const void *p1, const void *p2) {
    }
 }
 
+// Will only read directory entries in the direct blocks
 uint32_t getDirectoryEntries(struct ext2_inode *dirInode,
       struct ext2_dir_entry **entries) {
-   uint32_t *indirectBlockAddressBuffer = NULL;
-   uint32_t *doubleIndirectBlockAddressBuffer = NULL;
    uint32_t i = 0;
-   uint32_t j = 0;
    uint32_t numberOfDirectoryEntries = 0;
    uint8_t numberOfBlocksLeft = dirInode->i_size / BLOCK_SIZE;
 
@@ -94,62 +169,6 @@ uint32_t getDirectoryEntries(struct ext2_inode *dirInode,
                numberOfDirectoryEntries, dirInode->i_block[i]); 
       }
       numberOfBlocksLeft -= i;
-   }
-
-   if (numberOfBlocksLeft) {
-      indirectBlockAddressBuffer =
-         malloc(sizeof(uint32_t) * INDIRECT_BLOCKS_PER_ADDRESS);
-      for (i = 0; i < numberOfBlocksLeft &&
-            i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
-         numberOfDirectoryEntries += directBlockDirectoryReading(entries,
-               numberOfDirectoryEntries, indirectBlockAddressBuffer[i]);
-      }
-      numberOfBlocksLeft -= i;
-   }
-
-   if (numberOfBlocksLeft) {
-      sdReadData(dirInode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK, 0,
-            (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
-      sdReadData(dirInode->i_block[EXT2_IND_BLOCK] * SECTORS_PER_BLOCK + 1, 0,
-            (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE, SECTOR_SIZE);
-
-      for (i = 0; i < numberOfBlocksLeft &&
-            i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
-         numberOfDirectoryEntries += directBlockDirectoryReading(entries,
-               numberOfDirectoryEntries, indirectBlockAddressBuffer[i]); 
-      }
-      numberOfBlocksLeft -= i;
-   }
-
-   if (numberOfBlocksLeft) {
-      sdReadData(dirInode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0,
-            (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
-      sdReadData(dirInode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0,
-            (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE,
-            SECTOR_SIZE);
-
-      for (j = 0; j * INDIRECT_BLOCKS_PER_ADDRESS < numberOfBlocksLeft &&
-            j < INDIRECT_BLOCKS_PER_ADDRESS; j++) {
-         sdReadData(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0,
-               (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
-         sdReadData(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1,
-               0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE,
-               SECTOR_SIZE);
-
-         for (i = 0; i < numberOfBlocksLeft &&
-               i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
-            numberOfDirectoryEntries += directBlockDirectoryReading(entries,
-                  numberOfDirectoryEntries, indirectBlockAddressBuffer[i]); 
-         }
-         numberOfBlocksLeft -= i;
-      }
-   }
-
-   if (indirectBlockAddressBuffer != NULL) {
-      free(indirectBlockAddressBuffer);
-   }
-   if (doubleIndirectBlockAddressBuffer != NULL) {
-      free(doubleIndirectBlockAddressBuffer);
    }
 
    return numberOfDirectoryEntries;
