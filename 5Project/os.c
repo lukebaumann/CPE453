@@ -111,6 +111,8 @@ ISR(TIMER0_COMPA_vect) {
    if (!++playBufferIndex) {
       playBuffer = readBuffer;
       readBuffer = (readBuffer + 1) % NUMBER_OF_BUFFERS;
+
+      readComplete = 0;
    }
 
    notifySleepingThreads();

@@ -2,7 +2,7 @@
  * File: program5.c
  * Authors: Luke Baumann, Tyler Kowallis
  * CPE 453 Program 05
- * 04/25/2014
+ * 06/03/2014
  */
 
 #include "globals.h"
@@ -17,11 +17,11 @@ static struct mutex_t buffer1Mutex;
 static struct mutex_t buffer2Mutex;
 
 static uint8_t *buffer[NUMBER_OF_BUFFERS];
+struct ext2_dir_entry *entries[MAX_NUMBER_OF_ENTRIES];
 uint8_t playBuffer = 0;
 uint8_t playBufferIndex = 0;
 uint8_t readBuffer = 0;
 uint8_t readBufferIndex = 0;
-static uint8_t readComplete = 0;
 
 static uint32_t block = 0;
 static uint8_t offset = 0;
@@ -43,7 +43,7 @@ void main() {
 
    start_audio_pwm();
 
-   ext2_init();
+   ext2_init(&entries);
    serial_init();
    os_init();
 
@@ -184,7 +184,8 @@ void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
  * Writes a byte to the digital output pin (3) and then yields.
  */
 void playback(void) {
-   struct mutex_t *playMutex; 
+   struct mutex_t *playMutex;
+
    while (1) {
       if (playBuffer == 0) {
          playMutex = &buffer1Mutex;
@@ -201,13 +202,16 @@ void playback(void) {
 
       yield();
    }
- }
+}
 
  /**
   *
   */
 void reader(void) {
-   struct mutex_t *readMutex; 
+   struct mutex_t *readMutex;
+   uint8_t timesRead = 4; //4 is the value at which we request a new block
+   uint16_t blockToRead = -1;
+
    while (1) {
       if (readComplete)
          yield();
@@ -219,12 +223,26 @@ void reader(void) {
             readMutex = &buffer2Mutex;
          }
 
+         if (4 == timesRead) {
+            if (entriesHasNextBlock())
+               blockToRead = entriesGetNextBlock();
+            else {
+               //Get next song
+                  //fetch inode for next entry
+                  //call findInode
+                  //use ...NextBlock() functions to read song
+            }
+         }
+
          mutex_lock(readMutex);
 
-
-         // Do read here
+         sdReadData(blockToRead, BUFFER_SIZE * timesRead, &buffer[readBuffer],
+            BUFFER_SIZE);
 
          mutex_unlock(readMutex);
+
+         readComplete = 1;
+         timesRead++;
       }
    }
 }
