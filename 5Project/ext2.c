@@ -60,35 +60,42 @@ uint32_t getNextBlockNumber(struct ext2_inode *inode) {
       }
    }
 
-   if (numberOfBlocksLeft) {
-      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK, 0,
-            (uint8_t *) doubleIndirectBlockAddressBuffer, SECTOR_SIZE);
-      read_data(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1, 0,
-            (uint8_t *) doubleIndirectBlockAddressBuffer + SECTOR_SIZE,
-            SECTOR_SIZE);
+   else if (state == DOUBLE_INDIRECT) {
+      blockAddressOffset = blocksRead - EXT2_NDIR_BLOCKS - INDIRECT_BLOCKS_PER_ADDRESS;
 
-      for (j = 0; sizeRemaining > 0 && j < INDIRECT_BLOCKS_PER_ADDRESS; j++) {
-         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK, 0,
-               (uint8_t *) indirectBlockAddressBuffer, SECTOR_SIZE);
-         read_data(doubleIndirectBlockAddressBuffer[j] * SECTORS_PER_BLOCK + 1,
-               0, (uint8_t *) indirectBlockAddressBuffer + SECTOR_SIZE,
-               SECTOR_SIZE);
+      uint32_t indirectBlockAddress = 0;
 
-         for (i = 0; sizeRemaining > 0 && i < numberOfBlocksLeft &&
-               i < INDIRECT_BLOCKS_PER_ADDRESS; i++) {
-            directBlockFileReading(&sizeRemaining,
-                  indirectBlockAddressBuffer[i]);
-         }
-         numberOfBlocksLeft -= i;
+      if (blockAddressOffset / INDIRECT_BLOCKS_PER_ADDRESS * sizeof(uint32_t) < SECTOR_SIZE) {
+         sdReadData(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK,
+               blockAddressOffset / INDIRECT_BLOCKS_PER_ADDRESS *
+               sizeof(uint32_t), (uint8_t *) &indirectBlockAddress,
+               sizeof(uint32_t));
+      }
+      else {
+         sdReadData(inode->i_block[EXT2_DIND_BLOCK] * SECTORS_PER_BLOCK + 1,
+               blockAddressOffset / INDIRECT_BLOCKS_PER_ADDRESS *
+               sizeof(uint32_t) - SECTOR_SIZE, (uint8_t *) &indirectBlockAddress,
+               sizeof(uint32_t));
+      }
+
+      if (blockAddressOffset % INDIRECT_BLOCKS_PER_ADDRESS * sizeof(uint32_t) < SECTOR_SIZE) {
+         sdReadData(indirectBlockAddress * SECTORS_PER_BLOCK,
+               blockAddressOffset % INDIRECT_BLOCKS_PER_ADDRESS *
+               sizeof(uint32_t), (uint8_t *) &blockNumber,
+               sizeof(uint32_t));
+      }
+      else {
+         sdReadData(indirectBlockAddress * SECTORS_PER_BLOCK + 1,
+               blockAddressOffset % INDIRECT_BLOCKS_PER_ADDRESS *
+               sizeof(uint32_t) - SECTOR_SIZE, (uint8_t *) &blockNumber,
+               sizeof(uint32_t));
       }
    }
 
-
-
-
-
    blocksRead++;
    numberOfBlocksLeft--;
+
+   return blockNumber;
 }
 
 void findSuperBlock(struct ext2_super_block *sb) {
