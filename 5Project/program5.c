@@ -55,26 +55,25 @@ void main() {
    //print_string("Before ext2_init\n\r");
 
    numberOfEntries = ext2_init(entries);
-   //print_string("Right Before create_thread()s\n\r");
+   print_string("Right Before create_thread()s\n\r");
    os_init();
 
-
-   create_thread((uint16_t) reader, 0, 1800);
+   create_thread((uint16_t) reader, 0, 100);
    create_thread((uint16_t) playback, 0, 50);
    create_thread((uint16_t) display_stats, 0, 52);
    create_thread((uint16_t) idle_thread, 0, 53);
 
    print_string("After create_thread()s\n\r");
 
-   mutex_init(&buffer1Mutex);
-   mutex_init(&buffer2Mutex);
+   //mutex_init(&buffer1Mutex);
+   //mutex_init(&buffer2Mutex);
 
    print_string("Before startaudio\n\r");
    start_audio_pwm();
 
    //clear_screen();
    //os_start();
-   sei();
+   //sei();
 
    while(1) {}
 }
