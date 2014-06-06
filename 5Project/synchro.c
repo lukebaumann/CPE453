@@ -46,13 +46,11 @@ void thread_sleep(uint16_t ticks) {
  * @param m The address of the mutex_t 
  */
 void mutex_init(struct mutex_t* m) {
-   cli();
    // Above the max thread id and main thread id
    m->ownerId = MAX_NUMBER_OF_THREADS + 2;
    m->lock = 0;
    m->startIndex = 0;
    m->endIndex = 0;
-   sei();
 }
 
 /**
