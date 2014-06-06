@@ -16,6 +16,7 @@ extern uint8_t playBufferIndex;
 extern uint8_t readBufferIndex;
 extern uint8_t playBuffer;
 extern uint8_t readBuffer;
+extern uint8_t readComplete;
 
 /**
  * Initializes the operating system. Reserves space from the heap for the
