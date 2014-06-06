@@ -361,8 +361,15 @@ uint8_t get_next_thread(void) {
    //       return MAX_NUMBER_OF_THREADS;
    //    }
    // }
-   return system->currentThreadId == MAX_NUMBER_OF_THREADS - 1 ?
-      system->currentThreadId : system->currentThreadId + 1;
+
+   uint8_t nextThreadId = system->currentThreadId;
+
+   do {
+      nextThreadId = nextThreadId == MAX_NUMBER_OF_THREADS - 1 ?
+      nextThreadId : nextThreadId + 1;
+   } while (system->thread[nextThreadIndex] != THREAD_READY);
+
+   return nextThreadId;
 }
 
 /**
