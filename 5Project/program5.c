@@ -167,9 +167,6 @@ void display_stats() {
       for (i = 0; i < system->numberOfThreads; i++) {
          printThreadStats(i, i);
       }
-
-      // Main thread stats
-      printThreadStats(MAX_NUMBER_OF_THREADS, i);
    }
 }
 

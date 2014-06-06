@@ -297,28 +297,9 @@ __attribute__((naked)) void thread_start(void) {
  * and performing the very first invocation of context_switch().
  */
 void os_start(void) {
-   createMainThread();
-
    start_system_timer();
    context_switch((uint16_t *) (&system->threads[0].stackPointer), 
     (uint16_t *) (&system->threads[MAX_NUMBER_OF_THREADS].stackPointer));
-}
-
-/**
- * Initializes the main thread which is located at the end of the array of threads. 
- */
-void createMainThread() {
-   volatile struct thread_t *mainThread = &system->threads[MAX_NUMBER_OF_THREADS];
- 
-   mainThread->highestStackAddress = (uint8_t *) 0x8FF;
-   mainThread->functionAddress = (uint16_t) main;
-   mainThread->threadId = MAX_NUMBER_OF_THREADS;
-
-   mainThread->state = THREAD_RUNNING;
-   mainThread->sleepingTicksLeft = 0;
-   
-   mainThread->runsCurrentSecond = 1;
-   mainThread->runsLastSecond = 0;
 }
 
 /**
