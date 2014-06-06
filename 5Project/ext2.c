@@ -6,11 +6,13 @@ static uint32_t sectorsPerGroup = 0;
 
 uint32_t ext2_init(struct ext2_dir_entry **entries) {
    print_string("In ext2\n\r");
-   struct ext2_super_block sb;
+   struct ext2_super_block *sb = malloc(sizeof(struct ext2_super_block));
 
-   findSuperBlock(&sb);
-   inodesPerGroup = sb.s_inodes_per_group;
-   sectorsPerGroup = 2 * sb.s_blocks_per_group;
+   findSuperBlock(sb);
+   inodesPerGroup = sb->s_inodes_per_group;
+   sectorsPerGroup = 2 * sb->s_blocks_per_group;
+
+   free(sb);
 
    return getMusicDirectoryEntries(entries);
 }
@@ -132,16 +134,18 @@ void findInode(struct ext2_inode *inode, int inodeNumber) {
 
 uint32_t getMusicDirectoryEntries(struct ext2_dir_entry **entries) {
 	print_string("In getMusicDirectoryEntries\n\r");
-   struct ext2_inode dirInode;
-   findInode(&dirInode, ROOT_DIR_INODE_OFFSET);
+   struct ext2_inode *dirInode = malloc(sizeof(struct ext2_inode));
 
-   // char typeBuffer[MAX_STRING_LENGTH];
-   // char nameBuffer[MAX_STRING_LENGTH];
+   findInode(dirInode, ROOT_DIR_INODE_OFFSET);
+   uint32_t blockToReadDirectoryEntriesFrom = dirInode->i_block[0];
+   free(dirInode);
+
    uint32_t i = 0;
    uint32_t numberOfMusicEntries =
-      getDirectoryEntries(&dirInode, entries);
+      directBlockDirectoryReading(entries, blockToReadDirectoryEntriesFrom);
 
-      print_string("LeftgetDirectoryEntries\n\r");
+
+   print_string("Left getDirectoryEntries\n\r");
 
    qsort(entries, numberOfMusicEntries,
          sizeof(struct ext2_dir_entry *), compare);
@@ -174,17 +178,8 @@ int compare(const void *p1, const void *p2) {
    }
 }
 
-// Will only read directory entries in the direct blocks
-uint32_t getDirectoryEntries(struct ext2_inode *dirInode,
-      struct ext2_dir_entry **entries) {
-	print_string("In getDirectoryEntries\n\r");
-
-   return directBlockDirectoryReading(entries, dirInode->i_block[0]); 
-}
-
 uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
       uint32_t blockToReadFrom) {
-//   uint8_t buffer[BLOCK_SIZE];
    uint8_t buffer[SECTOR_SIZE];
    uint32_t i = 0;
    uint32_t filesInDirectory = 0;
@@ -193,18 +188,20 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
    struct ext2_dir_entry *entry;
    struct ext2_inode inode;
 
-   //We are assuming there is less than 1 sector's-worth  of directory entries
+   //We are reading only 1 sector's-worth  of directory entries
    sdReadData(blockToReadFrom * SECTORS_PER_BLOCK, 0, buffer, SECTOR_SIZE);
-   // sdReadData(blockToReadFrom * SECTORS_PER_BLOCK + 1, 0,
-   //        buffer + SECTOR_SIZE, SECTOR_SIZE);
 
-   for (i = 0; sizeReadAlready < SECTOR_SIZE - sizeof(struct ext2_dir_entry) && i < MAX_NUMBER_OF_ENTRIES; i++) {
+   for (i = 0; sizeReadAlready < SECTOR_SIZE - sizeof(struct ext2_dir_entry) &&
+         filesInDirectory < MAX_NUMBER_OF_ENTRIES; i++) {
       entry = (struct ext2_dir_entry *) (buffer + sizeReadAlready);
       entryLength = entry->rec_len;
 
       findInode(&inode, entry->inode);
       print_string(entry->name);
-            print_string("\n\r");
+      print_string("\n\r");
+      print_int(entryLength);
+      print_string("\n\r");
+      
 
       print_hex32(inode.i_mode);
       print_string("\n\r");
