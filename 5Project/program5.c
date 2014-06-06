@@ -40,20 +40,20 @@ uint8_t buffer1[BUFFER_SIZE] = {
 };
 uint8_t buffer2[BUFFER_SIZE] = {
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
   255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
 };
 
@@ -93,8 +93,8 @@ void main() {
    os_init();
 
    create_thread((uint16_t) playback, 0, 50);
-   //create_thread((uint16_t) reader, 0, 50);
-   create_thread((uint16_t) display_stats, 0, 52);
+   create_thread((uint16_t) reader, 0, 500);
+   //create_thread((uint16_t) display_stats, 0, 52);
    create_thread((uint16_t) idle_thread, 0, 53);
 
    print_string("After create_thread()s\n\r");
@@ -259,6 +259,8 @@ void playback(void) {
   *
   */
 void reader(void) {
+   set_cursor(51, 0);
+   print_string("In reader\n\r");
    struct mutex_t *readMutex;
    uint8_t timesRead = 4; //4 is the value at which we request a new block
    uint16_t blockToRead = -1;
@@ -280,12 +282,16 @@ void reader(void) {
          if (4 == timesRead) {
             timesRead = 0;
 
+            set_cursor(52,0);
+            print_string("About to getNextBlockNumber\n\r");
             //Possibly infinite loop point
             while (!(blockToRead = getNextBlockNumber(&songInode))) {
                entriesIndex = (entriesIndex + 1) % numberOfEntries;
 
                //Get next song
                findInode(&songInode, entries[entriesIndex]->inode);
+            print_int(blockToRead);
+            print_string("\n\n\r");
             }
          }
 

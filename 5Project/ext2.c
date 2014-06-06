@@ -46,15 +46,29 @@ uint32_t getNextBlockNumber(struct ext2_inode *inode) {
       }
    }
 
-   if (numberOfBlocksLeft) {
+   
+   print_string("numberOfBlocksLeft: ");
+   print_int(numberOfBlocksLeft);
+   print_string("\n\r");
+   print_string("blocksRead: ");
+   print_int(blocksRead);
+   print_string("\n\r");
+
+   if (!numberOfBlocksLeft) {
       return 0;
    }
 
    if (state == DIRECT) {
+      print_string("Direct\r\n");
       blockNumber = inode->i_block[blocksRead];
+
+      print_string("blockNumber: ");
+      print_int(blockNumber);
+      print_string("\n\r");
    }
 
    else if (state == INDIRECT) {
+      print_string("Indirect\r\n");
       blockAddressOffset = blocksRead - EXT2_NDIR_BLOCKS;
 
       if (blockAddressOffset * sizeof(uint32_t) < SECTOR_SIZE) {
@@ -67,6 +81,10 @@ uint32_t getNextBlockNumber(struct ext2_inode *inode) {
                blockAddressOffset * sizeof(uint32_t) - SECTOR_SIZE,
                (uint8_t *) &blockNumber, sizeof(uint32_t));
       }
+
+      print_string("blockNumber: ");
+      print_int(blockNumber);
+      print_string("\n\r");
    }
 
    else if (state == DOUBLE_INDIRECT) {
