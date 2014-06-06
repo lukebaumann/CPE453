@@ -11,7 +11,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include "ext2.h"
-#include <string.h>
 
 //place defines and prototypes here
 #define MAX_STRING_LENGTH 30
@@ -54,7 +53,7 @@ void testHex32(uint32_t tested);
 #define BUFFER_SIZE 256
 
 // program5.c
-#define MAX_NUMBER_OF_ENTRIES 5
+#define MAX_NUMBER_OF_ENTRIES 20
 
 void main();
 void handleKeys();
@@ -73,7 +72,8 @@ int compare(const void *p1, const void *p2);
 uint32_t getDirectoryEntries(struct ext2_inode *dirInode,
       struct ext2_dir_entry **entries);
 uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
-      uint32_t numberOfDirectoryEntries, uint32_t blockToReadFrom);
+      uint32_t blockToReadFrom);
+void ourMemcpy(void *destination, void *source, uint32_t size);
 #define BLOCK_SIZE 1024
 #define INDIRECT_BLOCKS_PER_ADDRESS 256
 #define SECTOR_SIZE 512
@@ -82,7 +82,7 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
 #define INODE_TABLE_BLOCK_INDEX 5
 #define ROOT_DIR_INODE_OFFSET 2
 #define FILE_MODE_TYPE_MASK 0xF000
-#define REGULAR_FILE 0x6000
+#define REGULAR_FILE 0x8000
 #define DIRECTORY 0x4000
 
 #endif

@@ -10,8 +10,8 @@
 #include "SdReader.h"
 
 extern volatile struct system_t *system;
-extern volatile uint32_t tenMillisecondCounter;
-extern volatile uint32_t oneSecondCounter;
+//extern volatile uint32_t tenMillisecondCounter;
+//extern volatile uint32_t oneSecondCounter;
 
 static struct mutex_t buffer1Mutex;
 static struct mutex_t buffer2Mutex;
@@ -20,7 +20,6 @@ static uint8_t *buffer[NUMBER_OF_BUFFERS];
 uint8_t playBuffer = 0;
 uint8_t playBufferIndex = 0;
 uint8_t readBuffer = 1;
-uint8_t readBufferIndex = 0;
 uint8_t buffer1[BUFFER_SIZE];
 uint8_t buffer2[BUFFER_SIZE];
 
@@ -29,8 +28,8 @@ static uint8_t entriesIndex = 0;
 static uint32_t numberOfEntries = 0;
 uint8_t readComplete = 0;
 
-static uint32_t block = 0;
-static uint8_t offset = 0;
+//static uint32_t block = 0;
+//static uint8_t offset = 0;
 
 void idle_thread(void) {
    while (1);
@@ -42,16 +41,10 @@ void idle_thread(void) {
 void main() {
    serial_init();
 
-   // print_string("Before mallocs\n\r");
-
-   // uint8_t i = 0;
-   // for (i = 0; i < NUMBER_OF_BUFFERS; i++) {
-   //    buffer[i] = malloc(BUFFER_SIZE);
-   // }
    buffer[0] = buffer1;
    buffer[1] = buffer2;
 
-   print_string("Before sdinit()\n\r");
+   //print_string("Before sdinit()\n\r");
 
    if (!sdInit(0)) {
       if (!sdInit(1)) {
@@ -59,15 +52,15 @@ void main() {
       }
    }
 
-   print_string("Before ext2_init\n\r");
+   //print_string("Before ext2_init\n\r");
 
-    numberOfEntries = ext2_init(entries);
-   print_string("Right Before create_thread()s\n\r");
+   numberOfEntries = ext2_init(entries);
+   //print_string("Right Before create_thread()s\n\r");
    os_init();
 
 
-   //create_thread((uint16_t) reader, 0, 1000);
-   //create_thread((uint16_t) playback, 0, 50);
+   create_thread((uint16_t) reader, 0, 1800);
+   create_thread((uint16_t) playback, 0, 50);
    create_thread((uint16_t) display_stats, 0, 52);
    create_thread((uint16_t) idle_thread, 0, 53);
 
@@ -80,7 +73,7 @@ void main() {
    start_audio_pwm();
 
    //clear_screen();
-//   os_start();
+   //os_start();
    sei();
 
    while(1) {}

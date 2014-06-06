@@ -178,26 +178,12 @@ int compare(const void *p1, const void *p2) {
 uint32_t getDirectoryEntries(struct ext2_inode *dirInode,
       struct ext2_dir_entry **entries) {
 	print_string("In getDirectoryEntries\n\r");
-//   uint32_t i = 0;
-   uint32_t numberOfDirectoryEntries = 0;
-   // uint8_t numberOfBlocksLeft = dirInode->i_size / BLOCK_SIZE;
 
-   // if (numberOfBlocksLeft) {
-   //    for (i = 0; i < numberOfBlocksLeft && i < EXT2_NDIR_BLOCKS; i++) {
-   //       numberOfDirectoryEntries += directBlockDirectoryReading(entries,
-   //             numberOfDirectoryEntries, dirInode->i_block[i]); 
-   //    }
-   //    numberOfBlocksLeft -= i;
-   // }
-
-   // return numberOfDirectoryEntries;
-
-   return directBlockDirectoryReading(entries,
-               numberOfDirectoryEntries, dirInode->i_block[0]); 
+   return directBlockDirectoryReading(entries, dirInode->i_block[0]); 
 }
 
 uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
-      uint32_t numberOfDirectoryEntries, uint32_t blockToReadFrom) {
+      uint32_t blockToReadFrom) {
 //   uint8_t buffer[BLOCK_SIZE];
    uint8_t buffer[SECTOR_SIZE];
    uint32_t i = 0;
@@ -212,13 +198,7 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
    // sdReadData(blockToReadFrom * SECTORS_PER_BLOCK + 1, 0,
    //        buffer + SECTOR_SIZE, SECTOR_SIZE);
 
-   for (i = 0; sizeReadAlready < SECTOR_SIZE - sizeof(struct ext2_dir_entry); i++) {
-   print_int(i);
-   	print_string("\n\r");
-   // 		if (sizeReadAlready >= SECTOR_SIZE - sizeof(ext2_dir_entry))
-			// sdReadData(blockToReadFrom * SECTORS_PER_BLOCK + 1, 0,
-   //        		buffer, SECTOR_SIZE);
-
+   for (i = 0; sizeReadAlready < SECTOR_SIZE - sizeof(struct ext2_dir_entry) && i < MAX_NUMBER_OF_ENTRIES; i++) {
       entry = (struct ext2_dir_entry *) (buffer + sizeReadAlready);
       entryLength = entry->rec_len;
 
@@ -228,20 +208,28 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
 
       print_hex32(inode.i_mode);
       print_string("\n\r");
-      if ((inode.i_mode & FILE_MODE_TYPE_MASK) != DIRECTORY) {
-         entries[numberOfDirectoryEntries + i] = malloc(entryLength);
+      if ((inode.i_mode & FILE_MODE_TYPE_MASK) == REGULAR_FILE) {
+         entries[filesInDirectory] = malloc(entryLength);
 
-         memcpy(entries[numberOfDirectoryEntries + i], entry, entryLength);
+         ourMemcpy(entries[filesInDirectory], entry, entryLength);
 
          filesInDirectory++;
       }
 
       sizeReadAlready += entryLength;
    }
+
    print_int(filesInDirectory);
-   	print_string("\n\r");
-   //print_string("Out of directBlockDirectoryReading loop\n\r");
+   print_string("\n\r");
+   print_string("Out of directBlockDirectoryReading loop\n\r");
 
    return filesInDirectory;
+}
+
+void ourMemcpy(void *destination, void *source, uint32_t size) {
+   while (size) {
+      ((uint8_t *) destination)[size - 1] = ((uint8_t *) source)[size - 1]; 
+      size--;
+   }
 }
 
