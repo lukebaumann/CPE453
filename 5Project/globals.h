@@ -53,7 +53,7 @@ void testHex32(uint32_t tested);
 #define BUFFER_SIZE 256
 
 // program5.c
-#define MAX_NUMBER_OF_ENTRIES 20
+#define MAX_NUMBER_OF_ENTRIES 5
 
 void main();
 void handleKeys();
