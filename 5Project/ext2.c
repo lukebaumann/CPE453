@@ -216,7 +216,7 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
       sizeReadAlready += entryLength;
    }
 
-   print_int(filesInDirectory);
+   //print_int(filesInDirectory);
    //print_string("\n\r");
    //print_string("Out of directBlockDirectoryReading loop\n\r");
 
