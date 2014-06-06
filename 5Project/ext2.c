@@ -5,7 +5,7 @@ static uint32_t inodesPerGroup = 0;
 static uint32_t sectorsPerGroup = 0;
 
 uint32_t ext2_init(struct ext2_dir_entry **entries) {
-   print_string("In ext2\n\r");
+   //print_string("In ext2\n\r");
    struct ext2_super_block *sb = malloc(sizeof(struct ext2_super_block));
 
    findSuperBlock(sb);
@@ -133,7 +133,7 @@ void findInode(struct ext2_inode *inode, int inodeNumber) {
 }
 
 uint32_t getMusicDirectoryEntries(struct ext2_dir_entry **entries) {
-	print_string("In getMusicDirectoryEntries\n\r");
+	//print_string("In getMusicDirectoryEntries\n\r");
    struct ext2_inode *dirInode = malloc(sizeof(struct ext2_inode));
 
    findInode(dirInode, ROOT_DIR_INODE_OFFSET);
@@ -145,7 +145,7 @@ uint32_t getMusicDirectoryEntries(struct ext2_dir_entry **entries) {
       directBlockDirectoryReading(entries, blockToReadDirectoryEntriesFrom);
 
 
-   print_string("Left getDirectoryEntries\n\r");
+   //print_string("Left getDirectoryEntries\n\r");
 
    qsort(entries, numberOfMusicEntries,
          sizeof(struct ext2_dir_entry *), compare);
@@ -197,14 +197,14 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
       entryLength = entry->rec_len;
 
       findInode(&inode, entry->inode);
-      print_string(entry->name);
-      print_string("\n\r");
-      print_int(entryLength);
-      print_string("\n\r");
+      //print_string(entry->name);
+      //print_string("\n\r");
+      //print_int(entryLength);
+      //print_string("\n\r");
       
 
-      print_hex32(inode.i_mode);
-      print_string("\n\r");
+      //print_hex32(inode.i_mode);
+      //print_string("\n\r");
       if ((inode.i_mode & FILE_MODE_TYPE_MASK) == REGULAR_FILE) {
          entries[filesInDirectory] = malloc(entryLength);
 
@@ -217,8 +217,8 @@ uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
    }
 
    print_int(filesInDirectory);
-   print_string("\n\r");
-   print_string("Out of directBlockDirectoryReading loop\n\r");
+   //print_string("\n\r");
+   //print_string("Out of directBlockDirectoryReading loop\n\r");
 
    return filesInDirectory;
 }

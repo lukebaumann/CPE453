@@ -58,22 +58,24 @@ void main() {
    print_string("Right Before create_thread()s\n\r");
    os_init();
 
-   create_thread((uint16_t) reader, 0, 100);
+   create_thread((uint16_t) reader, 0, 1000);
    create_thread((uint16_t) playback, 0, 50);
    create_thread((uint16_t) display_stats, 0, 52);
    create_thread((uint16_t) idle_thread, 0, 53);
 
    print_string("After create_thread()s\n\r");
 
-   //mutex_init(&buffer1Mutex);
-   //mutex_init(&buffer2Mutex);
+   mutex_init(&buffer1Mutex);
+   mutex_init(&buffer2Mutex);
 
    print_string("Before startaudio\n\r");
    start_audio_pwm();
 
    //clear_screen();
-   //os_start();
-   //sei();
+   print_string("Right before os_start\n\r");
+   os_start();
+   print_string("Right after os_start. Should not ever see this\n\r");
+   sei();
 
    while(1) {}
 }
@@ -200,6 +202,7 @@ void printThreadStats(uint8_t threadIndex, uint8_t threadCount) {
  * Writes a byte to the digital output pin (3) and then yields.
  */
 void playback(void) {
+   print_string("In playback\n\r");
    struct mutex_t *playMutex;
 
    while (1) {
