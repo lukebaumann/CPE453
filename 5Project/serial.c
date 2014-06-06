@@ -4,7 +4,7 @@
 /*
  * Initialize the serial port.
  */
-void serial_init() {
+void serial_init(void) {
    uint16_t baud_setting;
 
    UCSR0A = _BV(U2X0);
@@ -21,7 +21,7 @@ void serial_init() {
 /*
  * Return 1 if a character is available else return 0.
  */
-uint8_t byte_available() {
+uint8_t byte_available(void) {
    return (UCSR0A & (1 << RXC0)) ? 1 : 0;
 }
 
@@ -29,7 +29,7 @@ uint8_t byte_available() {
  * Unbuffered read
  * Return 255 if no character is available otherwise return available character.
  */
-uint8_t read_byte() {
+uint8_t read_byte(void) {
    if (UCSR0A & (1 << RXC0)) return UDR0;
    return 255;
 }
@@ -48,83 +48,15 @@ uint8_t write_byte(uint8_t b) {
    return 1;
 }
 
-// Send the string, character by character to write_byte
+/*
+ * Prints a string.
+ *
+ * s string to print
+ */
 void print_string(char* s) {
-   while (*s) {
+   while (*s)
       write_byte(*s++);
-   }
 }
-
-// Find each decimal place value and store it in a string,
-// then reverse the string to be in the correct order and
-// return the length
-uint8_t myITOA10(char *string, uint32_t i) {
-   uint8_t stringIndex = 0;
-   uint8_t remainder = 0;
-
-   do {
-      remainder = i % 10;
-      string[stringIndex++] = '0' + remainder;
-
-      i /= 10;
-   } while (i > 0);
-
-   string[stringIndex] = '\0';
-
-   reverseString(string, stringIndex);
-   
-   return stringIndex;
-}
-
-
-// Find each hexidecimal place value and store it in a string,
-// then reverse the string to be in the correct order and
-// return the length
-uint8_t myITOA16(char *string, uint32_t i) {
-   uint8_t stringIndex = 0;
-   uint8_t remainder = 0;
-
-   do {
-      remainder = i & 0xF;
-      string[stringIndex++] = remainder < 10 ? '0' + remainder : 'A' + remainder - 10;
-
-      i >>= 4;
-   } while (i > 0);
-
-   string[stringIndex] = '\0';
-
-   reverseString(string, stringIndex);
-
-   return stringIndex;
-}
-
-// Reverses the string in place
-void reverseString(char *string, uint8_t stringSize) {
-   uint8_t stringIndex = 0;
-   char temp = 0;
-
-   while (stringIndex * 2 < stringSize - 1) {
-      temp = string[stringIndex];
-      string[stringIndex] = string[stringSize - stringIndex - 1];
-      string[stringSize - stringIndex - 1] = temp;
-
-      stringIndex++;
-   }
-}
-
-// Prints a 16 bit int in dec
-// void print_int(uint16_t i) {
-//    print_int32(i);
-// }
-
-// Prints a 32 bit int in dec
-// void print_int32(uint32_t i) {
-//    char integerString[MAX_STRING_LENGTH];
-
-//    myITOA10(integerString, i);
-
-//    print_string(integerString);
-// }
 
 /*
  * Print an 8-bit or 16-bit unsigned int
@@ -172,70 +104,81 @@ void print_int32(uint32_t i) {
    }
 }
 
-// Prints a 16 bit int in hex
+/*
+ * Print an 8-bit or 16-bit unsigned int in hex
+ *
+ * i integer to print
+ */
 void print_hex(uint16_t i) {
-   char integerString[MAX_STRING_LENGTH];
+   uint8_t nibble = 0;
+   int8_t c = 12;
 
-   myITOA16(integerString, i);
+   while (!(i >> c & 0xF) && c >= 0)
+      c -= 4;
 
-   print_string(integerString);
-}
+   for (; c >= 0; c -= 4) {
+      nibble = i >> c & 0xF;
 
-// Prints a 32 bit int in hex
-void print_hex32(uint32_t i) {
-   char integerString[MAX_STRING_LENGTH];
-
-   myITOA16(integerString, i);
-
-   print_string(integerString);
-}
-
-// Sends the VT100 command to move the cursor to the right place
-void set_cursor(uint8_t row, uint8_t col) {
-   char string[MAX_STRING_LENGTH];
-   uint8_t stringIndex = 0;
-
-   string[stringIndex++] = '';
-   string[stringIndex++] = '[';
-   stringIndex += myITOA10(&string[stringIndex], row);
-   string[stringIndex++] = ';';
-   stringIndex += myITOA10(&string[stringIndex], col);
-   string[stringIndex++] = 'f';
-   string[stringIndex++] = '\0';
-
-   print_string(string);
-}
-
-// Sends the VT100 command to change the color
-void set_color(uint8_t color) {
-   char string[MAX_STRING_LENGTH];
-   uint8_t stringIndex = 0;
-
-   if (color >= BLACK && color <= WHITE) {
-      string[stringIndex++] = '';
-      string[stringIndex++] = '[';
-      stringIndex += myITOA10(&string[stringIndex], color);
-      string[stringIndex++] = 'm';
-      string[stringIndex++] = '\0';
-
-      print_string(string);
+      if (nibble <= 9)  //is nibble 0-9?
+         write_byte(nibble + '0');
+      else              //nibble is A-F
+         write_byte(nibble + '7');
    }
 }
 
-// Sends the VT100 command to clear the screen
-// void clear_screen(void) {
-//    char string[MAX_STRING_LENGTH];
-//    uint8_t stringIndex = 0;
+/*
+ * Print a 32-bit unsigned int in hex
+ *
+ * i integer to print
+ */
+void print_hex32(uint32_t i) {
+   uint8_t nibble = 0;
+   int8_t c = 28;
 
-//    string[stringIndex++] = '';
-//    string[stringIndex++] = '[';
-//    string[stringIndex++] = '2';
-//    string[stringIndex++] = 'J';
-//    string[stringIndex++] = '\0';
+   while (!(i >> c & 0xF) && c >= 0)
+      c -= 4;
 
-//    print_string(string);
-// }
+   for (; c >= 0; c -= 4) {
+      nibble = i >> c & 0xF;
 
+      if (nibble <= 9)  //is nibble 0-9?
+         write_byte(nibble + '0');
+      else              //nibble is A-F
+         write_byte(nibble + '7');
+   }
+}
+
+/*
+ * Set the console cursor position 
+ *
+ * row The cursor row
+ * col The cursor column
+ */
+void set_cursor(uint8_t row, uint8_t col) {
+   print_string("\033[");
+   print_int(row);
+   write_byte(';');
+   print_int(col);
+   write_byte('H');
+}
+
+/*
+ * Sets the console color
+ *
+ * color A VT100 color value
+ */
+void set_color(uint8_t color) {
+   if (color < BLACK || color > WHITE)
+      return;
+
+   print_string("\033[");
+   print_int(color);
+   write_byte('m');
+}
+
+/*
+ * Clears the screen
+ */
 void clear_screen(void) {
    print_string("\033[2J");
    print_string("\033[H");
