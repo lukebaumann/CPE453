@@ -75,7 +75,7 @@ void print_int(uint16_t i) {
       write_byte('0');
 
    while (c) {
-      write_byte( i / c + ASCII_0);
+      write_byte( i / c + '0');
       i %= c;
       c /= 10;
    }
@@ -98,7 +98,7 @@ void print_int32(uint32_t i) {
       write_byte('0');
 
    while (c) {
-      write_byte( i / c + ASCII_0);
+      write_byte( i / c + '0');
       i %= c;
       c /= 10;
    }
@@ -120,9 +120,9 @@ void print_hex(uint16_t i) {
       nibble = i >> c & 0xF;
 
       if (nibble <= 9)  //is nibble 0-9?
-         write_byte(nibble + ASCII_0);
+         write_byte(nibble + '0');
       else              //nibble is A-F
-         write_byte(nibble + ASCII_7);
+         write_byte(nibble + '7');
    }
 }
 
@@ -142,9 +142,9 @@ void print_hex32(uint32_t i) {
       nibble = i >> c & 0xF;
 
       if (nibble <= 9)  //is nibble 0-9?
-         write_byte(nibble + ASCII_0);
+         write_byte(nibble + '0');
       else              //nibble is A-F
-         write_byte(nibble + ASCII_7);
+         write_byte(nibble + '7');
    }
 }
 
