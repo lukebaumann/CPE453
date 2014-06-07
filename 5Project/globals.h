@@ -25,7 +25,13 @@
 #define CYAN 36
 #define WHITE 37
 
+// sdReader.c
+uint8_t sdReadData(uint32_t block,
+      uint16_t offset, uint8_t *dst, uint16_t count);
+
 // For serial.c
+void serial_init();
+uint8_t read_byte();
 uint8_t write_byte(uint8_t b);
 void print_string(char* s);
 uint8_t myITOA10(char *string, uint32_t i);
@@ -55,7 +61,7 @@ void testHex32(uint32_t tested);
 // program5.c
 #define MAX_NUMBER_OF_ENTRIES 5
 
-void main();
+int main();
 void handleKeys();
 void display_stats();
 void printThreadStats(uint8_t threadIndex, uint8_t threadCount);
