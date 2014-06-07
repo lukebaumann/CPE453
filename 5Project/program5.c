@@ -80,11 +80,13 @@ void main() {
 
    //print_string("Before sdinit()\n\r");
 
-   if (!sdInit(0)) {
-      if (!sdInit(1)) {
-         exit(-1);
-      }
-   }
+   // if (!sdInit(0)) {
+   //    if (!sdInit(1)) {
+   //       exit(-1);
+   //    }
+   // }
+
+   sdInit(0);
 
    //print_string("Before ext2_init\n\r");
 
@@ -263,7 +265,7 @@ void reader(void) {
    print_string("In reader\n\r");
    struct mutex_t *readMutex;
    uint8_t timesRead = 4; //4 is the value at which we request a new block
-   uint16_t blockToRead = -1;
+   uint32_t blockToRead = -1;
    struct ext2_inode songInode;
 
    findInode(&songInode, entries[entriesIndex]->inode);
@@ -284,15 +286,17 @@ void reader(void) {
 
             set_cursor(52,0);
             print_string("About to getNextBlockNumber\n\r");
-            //Possibly infinite loop point
-            while (!(blockToRead = getNextBlockNumber(&songInode))) {
+            blockToRead = getNextBlockNumber(&songInode);
+
+            if (!blockToRead) {
                entriesIndex = (entriesIndex + 1) % numberOfEntries;
 
                //Get next song
                findInode(&songInode, entries[entriesIndex]->inode);
+               blockToRead = getNextBlockNumber(&songInode);
+            }
             print_int(blockToRead);
             print_string("\n\n\r");
-            }
          }
 
          mutex_lock(readMutex);

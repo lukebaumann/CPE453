@@ -74,6 +74,8 @@ uint32_t getDirectoryEntries(struct ext2_inode *dirInode,
 uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
       uint32_t blockToReadFrom);
 void ourMemcpy(void *destination, void *source, uint32_t size);
+uint32_t getNextBlockNumber(struct ext2_inode *inode);
+
 #define BLOCK_SIZE 1024
 #define INDIRECT_BLOCKS_PER_ADDRESS 256
 #define SECTOR_SIZE 512
