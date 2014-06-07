@@ -72,7 +72,7 @@ void idle_thread(void) {
 /**
  * Ivokes the operating system and is the idle thread.
  */
-void main() {
+int main() {
    serial_init();
 
    buffer[0] = buffer1;
