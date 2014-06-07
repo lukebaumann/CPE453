@@ -1,6 +1,6 @@
 #Compile the code
 program_5: program5.c os.c synchro.c serial.c os_util.c SdReader.c ext2.c
-	avr-gcc -mmcu=atmega328p -DF_CPU=16000000 -O2 -o program5.elf program5.c os.c os_util.c SdReader.c synchro.c serial.c ext2.c
+	avr-gcc -Wall -mmcu=atmega328p -DF_CPU=16000000 -O2 -o program5.elf program5.c os.c os_util.c SdReader.c synchro.c serial.c ext2.c
 	avr-objcopy -O ihex program5.elf program5.hex
 	avr-size program5.elf
 

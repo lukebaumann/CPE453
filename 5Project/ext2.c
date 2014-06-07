@@ -24,7 +24,7 @@ uint32_t ext2_init(struct ext2_dir_entry **entries) {
 uint32_t getNextBlockNumber(struct ext2_inode *inode) {
    static enum BLOCK_STATE state = DIRECT;
    static struct ext2_inode *currentInode = NULL;
-   static uint32_t sizeRemaining = 0;
+   //static uint32_t sizeRemaining = 0;
    static uint32_t numberOfBlocksLeft = 0;
    static uint32_t blocksRead = 0;
    uint32_t blockAddressOffset = 0;
@@ -33,7 +33,7 @@ uint32_t getNextBlockNumber(struct ext2_inode *inode) {
    if (currentInode == NULL || currentInode != inode) {
       state = DIRECT;
       currentInode = inode;
-      sizeRemaining = currentInode->i_size;
+      //sizeRemaining = currentInode->i_size;
       numberOfBlocksLeft = currentInode->i_size / BLOCK_SIZE + 1;
       blocksRead = 0;
    }
@@ -158,43 +158,42 @@ uint32_t getMusicDirectoryEntries(struct ext2_dir_entry **entries) {
    uint32_t blockToReadDirectoryEntriesFrom = dirInode->i_block[0];
    free(dirInode);
 
-   uint32_t i = 0;
    uint32_t numberOfMusicEntries =
       directBlockDirectoryReading(entries, blockToReadDirectoryEntriesFrom);
 
 
    //print_string("Left getDirectoryEntries\n\r");
 
-   qsort(entries, numberOfMusicEntries,
-         sizeof(struct ext2_dir_entry *), compare);
+   // qsort(entries, numberOfMusicEntries,
+   //       sizeof(struct ext2_dir_entry *), compare);
 
    return numberOfMusicEntries;
 }
 
-int compare(const void *p1, const void *p2) {
-   struct ext2_dir_entry *entry1 = *(struct ext2_dir_entry **) p1;
-   struct ext2_dir_entry *entry2 = *(struct ext2_dir_entry **) p2;
+// int compare(const void *p1, const void *p2) {
+//    struct ext2_dir_entry *entry1 = *(struct ext2_dir_entry **) p1;
+//    struct ext2_dir_entry *entry2 = *(struct ext2_dir_entry **) p2;
 
-   uint8_t minNameLength = entry1->name_len < entry2->name_len ?
-      entry1->name_len : entry2->name_len;
+//    uint8_t minNameLength = entry1->name_len < entry2->name_len ?
+//       entry1->name_len : entry2->name_len;
 
-   int8_t test = strncmp(entry1->name, entry2->name, minNameLength);
+//    int8_t test = strncmp(entry1->name, entry2->name, minNameLength);
 
-   if (!test) {
-      if (entry1->name_len < entry2->name_len) {
-         return -1;
-      }
-      else if (entry1->name_len > entry2->name_len) {
-         return 1;
-      }
-      else {
-         return 0;
-      }
-   }
-   else {
-      return test;
-   }
-}
+//    if (!test) {
+//       if (entry1->name_len < entry2->name_len) {
+//          return -1;
+//       }
+//       else if (entry1->name_len > entry2->name_len) {
+//          return 1;
+//       }
+//       else {
+//          return 0;
+//       }
+//    }
+//    else {
+//       return test;
+//    }
+// }
 
 uint32_t directBlockDirectoryReading(struct ext2_dir_entry **entries,
       uint32_t blockToReadFrom) {
