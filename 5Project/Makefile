@@ -11,8 +11,8 @@ upload: program5.hex
 	avrdude -pm328p -P /dev/tty.usbmodem411 -c arduino -F -u -U flash:w:program5.hex
 
 #Upload target for Ubuntu systems
-upload_u: program3.hex
-	avrdude -pm328p -P /dev/ttyACM0 -c arduino -F -u -U flash:w:program3.hex
+upload_u: program5.hex
+	avrdude -pm328p -P /dev/ttyACM0 -c arduino -F -u -U flash:w:program5.hex
 
 #Moves all necessary files into a temporary folder for pushing
 prepare:
